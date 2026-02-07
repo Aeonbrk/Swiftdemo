@@ -3,7 +3,7 @@ import SwiftUI
 
 extension PlanInputView {
   var inputTab: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
       TextField("标题", text: $document.title)
         .textFieldStyle(.roundedBorder)
         .font(.title3)
@@ -12,12 +12,12 @@ extension PlanInputView {
         .font(.system(.body, design: .monospaced))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    .padding(12)
+    .padding(UIStyle.panelPadding)
   }
 
   var previewTab: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
         if let outline = document.outline, outline.planMarkdown.isEmpty == false {
           previewText(for: outline.planMarkdown)
         } else {
@@ -26,35 +26,35 @@ extension PlanInputView {
       }
       .frame(maxWidth: .infinity, alignment: .leading)
     }
-    .padding(12)
+    .padding(UIStyle.panelPadding)
   }
 
   var cardsTab: some View {
-    HStack(spacing: 12) {
+    HStack(spacing: UIStyle.sectionSpacing) {
       VStack(spacing: 8) {
         cardsToolbar
         cardsList
       }
-      .frame(minWidth: 320)
+      .frame(minWidth: UIStyle.contentColumnMinWidth)
 
       Divider()
       cardsDetail
     }
-    .padding(12)
+    .padding(UIStyle.panelPadding)
   }
 
   var todosTab: some View {
-    HStack(spacing: 12) {
+    HStack(spacing: UIStyle.sectionSpacing) {
       VStack(spacing: 8) {
         todosToolbar
         todosList
       }
-      .frame(minWidth: 320)
+      .frame(minWidth: UIStyle.contentColumnMinWidth)
 
       Divider()
       todosDetail
     }
-    .padding(12)
+    .padding(UIStyle.panelPadding)
   }
 
   var citationsTab: some View {
@@ -65,7 +65,7 @@ extension PlanInputView {
       }
     }
     .listStyle(.inset)
-    .padding(12)
+    .padding(UIStyle.panelPadding)
   }
 
   var historyTab: some View {
@@ -76,43 +76,45 @@ extension PlanInputView {
       }
     }
     .listStyle(.inset)
-    .padding(12)
+    .padding(UIStyle.panelPadding)
   }
 
   private var cardsToolbar: some View {
-    HStack(spacing: 8) {
-      Button {
-        createFlashcard()
-      } label: {
-        Label("新建", systemImage: "plus")
-      }
-      .appSecondaryActionButtonStyle()
+    actionToolbar {
+      HStack(spacing: 8) {
+        Button {
+          createFlashcard()
+        } label: {
+          Label("新建卡片", systemImage: "plus")
+        }
+        .appPrimaryActionButtonStyle()
 
-      Button(role: .destructive) {
-        deleteSelectedFlashcard()
-      } label: {
-        Label("删除", systemImage: "trash")
-      }
-      .appSecondaryActionButtonStyle()
-      .disabled(selectedCard == nil)
+        Button(role: .destructive) {
+          deleteSelectedFlashcard()
+        } label: {
+          Label("删除", systemImage: "trash")
+        }
+        .appSecondaryActionButtonStyle()
+        .disabled(selectedCard == nil)
 
-      Spacer()
+        Spacer()
 
-      Button {
-        exportFlashcardsTSV()
-      } label: {
-        Label("导出 TSV", systemImage: "square.and.arrow.up")
-      }
-      .appSecondaryActionButtonStyle()
-      .disabled(document.flashcards.isEmpty)
+        Button {
+          exportFlashcardsTSV()
+        } label: {
+          Label("导出 TSV", systemImage: "square.and.arrow.up")
+        }
+        .appSecondaryActionButtonStyle()
+        .disabled(document.flashcards.isEmpty)
 
-      Button {
-        exportFlashcardsCSV()
-      } label: {
-        Label("导出 CSV", systemImage: "square.and.arrow.up")
+        Button {
+          exportFlashcardsCSV()
+        } label: {
+          Label("导出 CSV", systemImage: "square.and.arrow.up")
+        }
+        .appSecondaryActionButtonStyle()
+        .disabled(document.flashcards.isEmpty)
       }
-      .appSecondaryActionButtonStyle()
-      .disabled(document.flashcards.isEmpty)
     }
   }
 
@@ -140,31 +142,50 @@ extension PlanInputView {
   }
 
   private var todosToolbar: some View {
-    HStack(spacing: 8) {
-      Button {
-        createTodo()
-      } label: {
-        Label("新建", systemImage: "plus")
-      }
-      .appSecondaryActionButtonStyle()
+    actionToolbar {
+      HStack(spacing: 8) {
+        Button {
+          createTodo()
+        } label: {
+          Label("新建任务", systemImage: "plus")
+        }
+        .appPrimaryActionButtonStyle()
 
-      Button(role: .destructive) {
-        deleteSelectedTodo()
-      } label: {
-        Label("删除", systemImage: "trash")
-      }
-      .appSecondaryActionButtonStyle()
-      .disabled(selectedTodo == nil)
+        Button(role: .destructive) {
+          deleteSelectedTodo()
+        } label: {
+          Label("删除", systemImage: "trash")
+        }
+        .appSecondaryActionButtonStyle()
+        .disabled(selectedTodo == nil)
 
-      Spacer()
+        Spacer()
 
-      Button {
-        exportTodosCSV()
-      } label: {
-        Label("导出 CSV", systemImage: "square.and.arrow.up")
+        Button {
+          exportTodosCSV()
+        } label: {
+          Label("导出 CSV", systemImage: "square.and.arrow.up")
+        }
+        .appSecondaryActionButtonStyle()
+        .disabled(document.todos.isEmpty)
       }
-      .appSecondaryActionButtonStyle()
-      .disabled(document.todos.isEmpty)
+    }
+  }
+
+  @ViewBuilder
+  private func actionToolbar<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    if #available(iOS 26, macOS 26, *) {
+      GlassEffectContainer(spacing: 8) {
+        content()
+          .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
+          .padding(.vertical, UIStyle.toolbarVerticalPadding)
+          .appToolbarSurface()
+      }
+    } else {
+      content()
+        .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
+        .padding(.vertical, UIStyle.toolbarVerticalPadding)
+        .appToolbarSurface()
     }
   }
 

@@ -20,7 +20,7 @@ struct PlanInputView: View {
   #endif
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
+    VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
       headerBar
       generationStatusView
       mainTabs
@@ -48,15 +48,15 @@ struct PlanInputView: View {
     if #available(iOS 26, macOS 26, *) {
       GlassEffectContainer(spacing: 12) {
         headerBarContent
-          .padding(.horizontal, 12)
-          .padding(.vertical, 10)
-          .appPanelSurface()
+          .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
+          .padding(.vertical, UIStyle.toolbarVerticalPadding)
+          .appToolbarSurface()
       }
     } else {
       headerBarContent
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .appPanelSurface()
+        .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
+        .padding(.vertical, UIStyle.toolbarVerticalPadding)
+        .appToolbarSurface()
     }
   }
 
@@ -65,7 +65,7 @@ struct PlanInputView: View {
       Button {
         generateStep1()
       } label: {
-        Label("生成（Step 1）", systemImage: "sparkles")
+        Label("生成大纲（Step 1）", systemImage: "sparkles")
       }
       .appPrimaryActionButtonStyle()
       .disabled(
@@ -75,7 +75,7 @@ struct PlanInputView: View {
       Button {
         generateStep2()
       } label: {
-        Label("生成（Step 2）", systemImage: "wand.and.stars")
+        Label("生成任务（Step 2）", systemImage: "wand.and.stars")
       }
       .appSecondaryActionButtonStyle()
       .disabled(isGenerating || document.outline == nil)
@@ -93,18 +93,38 @@ struct PlanInputView: View {
   @ViewBuilder
   private var generationStatusView: some View {
     if let errorMessage {
-      Text(errorMessage)
-        .foregroundStyle(.red)
-        .textSelection(.enabled)
+      generationStatusChip(
+        text: errorMessage,
+        systemImage: "exclamationmark.triangle.fill",
+        color: .red
+      )
     } else if let message {
-      Text(message)
-        .foregroundStyle(.secondary)
+      generationStatusChip(
+        text: message,
+        systemImage: "checkmark.circle.fill",
+        color: .secondary
+      )
+    }
+  }
+
+  private func generationStatusChip(text: String, systemImage: String, color: Color) -> some View {
+    HStack(spacing: 8) {
+      Image(systemName: systemImage)
+        .foregroundStyle(color)
+      Text(text)
+        .foregroundStyle(color)
         .textSelection(.enabled)
     }
+    .font(.callout)
+    .padding(.horizontal, 10)
+    .padding(.vertical, 6)
+    .appStatusChipSurface()
   }
 
   private var providerStatusView: some View {
     HStack(spacing: 8) {
+      Image(systemName: activeProviderName == nil ? "exclamationmark.shield" : "checkmark.shield")
+        .foregroundStyle(activeProviderName == nil ? .orange : .green)
       if let activeProviderName {
         Text("Provider：\(activeProviderName)")
           .lineLimit(1)
@@ -121,7 +141,7 @@ struct PlanInputView: View {
           Image(systemName: "gearshape")
         }
         .appSecondaryActionButtonStyle()
-        .help("管理 Provider")
+        .help("打开 Provider 设置")
       #endif
     }
     .padding(.horizontal, 10)
