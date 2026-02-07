@@ -15,53 +15,96 @@ struct PlanInputView: View {
   @State var selectedCardID: UUID?
   @State var selectedTodoID: UUID?
   @State var isShowingCardBack = false
+
   #if os(macOS)
-    @State private var presentedSheetRoute: PlanInputSheetRoute?
+    @State private var selectedRoute: PlanWorkspaceRoute = .input
+    @State private var workspaceColumnVisibility: NavigationSplitViewVisibility = .all
+    @State private var isProviderInspectorVisible = false
   #endif
 
+  var activeProviderName: String? {
+    activeProviders.first?.name
+  }
+
+  var selectedCard: Flashcard? {
+    guard let selectedCardID else { return nil }
+    return document.flashcards.first(where: { $0.id == selectedCardID })
+  }
+
+  var selectedTodo: TodoItem? {
+    guard let selectedTodoID else { return nil }
+    return document.todos.first(where: { $0.id == selectedTodoID })
+  }
+
   var body: some View {
+    #if os(macOS)
+      macWorkspace
+    #else
+      iosWorkspace
+    #endif
+  }
+}
+
+extension PlanInputView {
+  private var iosWorkspace: some View {
     VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
       headerBar
       generationStatusView
       mainTabs
     }
-    .padding(UIStyle.panelPadding)
+    .padding(UIStyle.workspacePadding)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
     .navigationTitle(document.title)
-    .onChange(of: document.title) { _, _ in document.updatedAt = .now }
-    .onChange(of: document.rawInput) { _, _ in document.updatedAt = .now }
-    .onChange(of: selectedCardID) { _, _ in isShowingCardBack = false }
-    #if os(macOS)
-      .sheet(item: $presentedSheetRoute) { route in
-        switch route {
-        case .providerSettings:
-          NavigationStack {
-            ProviderSettingsView()
-          }
-          .frame(minWidth: 900, minHeight: 560)
-        }
-      }
-    #endif
+    .onChange(of: selectedCardID) { _, _ in
+      isShowingCardBack = false
+    }
+    .onChange(of: document.title) { _, _ in
+      document.updatedAt = .now
+    }
+    .onChange(of: document.rawInput) { _, _ in
+      document.updatedAt = .now
+    }
   }
 
   @ViewBuilder
   private var headerBar: some View {
     if #available(iOS 26, macOS 26, *) {
-      GlassEffectContainer(spacing: 12) {
+      GlassEffectContainer(spacing: UIStyle.compactSpacing) {
         headerBarContent
-          .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
-          .padding(.vertical, UIStyle.toolbarVerticalPadding)
-          .appToolbarSurface()
       }
     } else {
       headerBarContent
-        .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
-        .padding(.vertical, UIStyle.toolbarVerticalPadding)
-        .appToolbarSurface()
     }
   }
 
   private var headerBarContent: some View {
-    HStack(spacing: 12) {
+    HStack(spacing: UIStyle.compactSpacing) {
+      #if os(macOS)
+        Button {
+          toggleWorkspaceSidebar()
+        } label: {
+          Image(systemName: workspaceColumnVisibility == .detailOnly ? "sidebar.left" : "sidebar.leading")
+        }
+        .appSecondaryActionButtonStyle()
+        .keyboardShortcut("0", modifiers: [.command, .option])
+        .help("展开或收起工作区侧栏")
+
+        Menu {
+          ForEach(PlanWorkspaceRoute.allCases) { route in
+            Button {
+              selectedRoute = route
+            } label: {
+              Label(route.title, systemImage: route.systemImage)
+            }
+            .keyboardShortcut(route.keyboardShortcutKey, modifiers: .command)
+          }
+        } label: {
+          Label(selectedRoute.title, systemImage: selectedRoute.systemImage)
+        }
+        .appSecondaryActionButtonStyle()
+        .help("切换工作区视图")
+      #endif
+
       Button {
         generateStep1()
       } label: {
@@ -85,9 +128,23 @@ struct PlanInputView: View {
           .controlSize(.small)
       }
 
-      Spacer()
+      Spacer(minLength: UIStyle.compactSpacing)
       providerStatusView
+
+      #if os(macOS)
+        Button {
+          toggleProviderInspector()
+        } label: {
+          Image(systemName: isProviderInspectorVisible ? "sidebar.right" : "sidebar.trailing")
+        }
+        .appSecondaryActionButtonStyle()
+        .keyboardShortcut("9", modifiers: [.command, .option])
+        .help("展开或收起 Provider Inspector")
+      #endif
     }
+    .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
+    .padding(.vertical, UIStyle.toolbarVerticalPadding)
+    .appTopBarGlass()
   }
 
   @ViewBuilder
@@ -96,13 +153,13 @@ struct PlanInputView: View {
       generationStatusChip(
         text: errorMessage,
         systemImage: "exclamationmark.triangle.fill",
-        color: .red
+        color: UIStyle.destructiveStatusColor
       )
     } else if let message {
       generationStatusChip(
         text: message,
         systemImage: "checkmark.circle.fill",
-        color: .secondary
+        color: UIStyle.positiveStatusColor
       )
     }
   }
@@ -118,13 +175,14 @@ struct PlanInputView: View {
     .font(.callout)
     .padding(.horizontal, 10)
     .padding(.vertical, 6)
-    .appStatusChipSurface()
+    .appChipGlass()
   }
 
   private var providerStatusView: some View {
     HStack(spacing: 8) {
       Image(systemName: activeProviderName == nil ? "exclamationmark.shield" : "checkmark.shield")
-        .foregroundStyle(activeProviderName == nil ? .orange : .green)
+        .foregroundStyle(activeProviderName == nil ? UIStyle.warningStatusColor : UIStyle.positiveStatusColor)
+
       if let activeProviderName {
         Text("Provider：\(activeProviderName)")
           .lineLimit(1)
@@ -135,63 +193,150 @@ struct PlanInputView: View {
       }
 
       #if os(macOS)
-        Button {
-          presentedSheetRoute = .providerSettings
-        } label: {
-          Image(systemName: "gearshape")
+        Button(activeProviderName == nil ? "配置" : "管理") {
+          isProviderInspectorVisible = true
         }
         .appSecondaryActionButtonStyle()
-        .help("打开 Provider 设置")
+        .help("打开 Provider Inspector")
       #endif
     }
     .padding(.horizontal, 10)
     .padding(.vertical, 6)
     .font(.callout)
     .foregroundStyle(.secondary)
-    .appStatusChipSurface()
+    .appChipGlass(interactive: true)
   }
 
   private var mainTabs: some View {
     TabView {
       inputTab
-        .tabItem { Text("输入") }
+        .tabItem { Label("输入", systemImage: "square.and.pencil") }
 
       previewTab
-        .tabItem { Text("预览") }
+        .tabItem { Label("预览", systemImage: "doc.text.magnifyingglass") }
 
       cardsTab
-        .tabItem { Text("卡片") }
+        .tabItem { Label("卡片", systemImage: "rectangle.stack") }
 
       todosTab
-        .tabItem { Text("任务") }
+        .tabItem { Label("任务", systemImage: "checklist") }
 
       citationsTab
-        .tabItem { Text("引用") }
+        .tabItem { Label("引用", systemImage: "link") }
 
       historyTab
-        .tabItem { Text("记录") }
+        .tabItem { Label("记录", systemImage: "clock.arrow.circlepath") }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
-  var activeProviderName: String? {
-    activeProviders.first?.name
-  }
+  private func syncSelectionWithCurrentData() {
+    if let selectedCardID,
+      document.flashcards.contains(where: { $0.id == selectedCardID }) == false {
+      self.selectedCardID = document.flashcards.first?.id
+    }
 
-  var selectedCard: Flashcard? {
-    guard let selectedCardID else { return nil }
-    return document.flashcards.first(where: { $0.id == selectedCardID })
-  }
-
-  var selectedTodo: TodoItem? {
-    guard let selectedTodoID else { return nil }
-    return document.todos.first(where: { $0.id == selectedTodoID })
+    if let selectedTodoID,
+      document.todos.contains(where: { $0.id == selectedTodoID }) == false {
+      self.selectedTodoID = document.todos.first?.id
+    }
   }
 }
 
 #if os(macOS)
-  private enum PlanInputSheetRoute: String, Identifiable {
-    case providerSettings
-    var id: String { rawValue }
+  extension PlanInputView {
+    private var macWorkspace: some View {
+      VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
+        headerBar
+        generationStatusView
+        macWorkspaceContent
+      }
+      .padding(UIStyle.workspacePadding)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .navigationTitle(document.title)
+      .inspector(isPresented: $isProviderInspectorVisible) {
+        providerInspector
+      }
+      .onAppear {
+        syncSelectionWithCurrentData()
+        if activeProviderName == nil {
+          isProviderInspectorVisible = true
+        }
+      }
+      .onChange(of: activeProviderName) { _, newValue in
+        if newValue == nil {
+          isProviderInspectorVisible = true
+        }
+      }
+      .onChange(of: document.flashcards.count) { _, _ in
+        syncSelectionWithCurrentData()
+      }
+      .onChange(of: document.todos.count) { _, _ in
+        syncSelectionWithCurrentData()
+      }
+      .onChange(of: selectedCardID) { _, _ in
+        isShowingCardBack = false
+      }
+      .onChange(of: document.title) { _, _ in
+        document.updatedAt = .now
+      }
+      .onChange(of: document.rawInput) { _, _ in
+        document.updatedAt = .now
+      }
+    }
+
+    private var macWorkspaceContent: some View {
+      NavigationSplitView(columnVisibility: $workspaceColumnVisibility) {
+        PlanWorkspaceSidebarView(selectedRoute: $selectedRoute)
+          .navigationSplitViewColumnWidth(
+            min: UIStyle.workspaceSidebarMinWidth,
+            ideal: UIStyle.workspaceSidebarIdealWidth,
+            max: UIStyle.workspaceSidebarIdealWidth + 20
+          )
+      } detail: {
+        PlanWorkspaceDetailView(
+          selectedRoute: selectedRoute,
+          inputView: AnyView(inputTab),
+          previewView: AnyView(previewTab),
+          cardsView: AnyView(cardsTab),
+          todosView: AnyView(todosTab),
+          citationsView: AnyView(citationsTab),
+          historyView: AnyView(historyTab)
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .appPanelGlass()
+      }
+      .navigationSplitViewStyle(.balanced)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var providerInspector: some View {
+      ProviderSettingsView(isEmbedded: true) {
+        closeProviderInspector()
+      }
+      .inspectorColumnWidth(
+        min: UIStyle.providerInspectorMinWidth,
+        ideal: UIStyle.providerInspectorWidth,
+        max: UIStyle.providerInspectorMaxWidth
+      )
+    }
+
+    private func toggleWorkspaceSidebar() {
+      withAnimation(.snappy(duration: 0.2)) {
+        workspaceColumnVisibility = workspaceColumnVisibility == .detailOnly ? .all : .detailOnly
+      }
+    }
+
+    private func toggleProviderInspector() {
+      withAnimation(.snappy(duration: 0.2)) {
+        isProviderInspectorVisible.toggle()
+      }
+    }
+
+    private func closeProviderInspector() {
+      withAnimation(.snappy(duration: 0.2)) {
+        isProviderInspectorVisible = false
+      }
+    }
   }
 #endif

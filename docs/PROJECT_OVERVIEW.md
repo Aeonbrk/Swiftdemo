@@ -31,13 +31,14 @@
 ### 3.1 架构现状
 
 - `Core` Swift Package：模型、LLM client、两步 pipeline、导出器、模型容器。
-- `demo` App：文档列表 + 编辑与生成 UI + Provider 设置（macOS）+ Keychain 集成。
+- `demo` App：文档列表 + 工作区路由 + Provider Inspector（macOS）+ Keychain 集成。
 
 代码入口：
 
 - App 入口：`demo/demoApp.swift`
 - 主界面：`demo/ContentView.swift`
-- 设置界面（macOS）：`demo/SettingsView.swift` + `demo/ProviderEditorView.swift`
+- 工作区与路由：`demo/PlanInputView.swift`、`demo/PlanWorkspaceRoute.swift`、`demo/PlanWorkspaceSidebarView.swift`
+- Provider Inspector（macOS）：`demo/ProviderSettingsView.swift` + `demo/ProviderEditorView.swift`
 - 生成辅助：`demo/PlanInputGenerationSupport.swift`
 - 核心包：`Core/Package.swift`
 
@@ -53,7 +54,7 @@
 | 导出 | Cards TSV/CSV、Todos CSV | 已实现（macOS 通过 `NSSavePanel`） |
 | 引用字段预留 | verification status 元数据 | 已实现（字段已落模型） |
 | 自动真实性校验 | 自动抓取和验证引用 | 未实现（仅预留字段） |
-| iOS 等平台完整设置体验 | Settings/Provider UI 跨平台可用 | 未完全实现（Settings 仅 macOS） |
+| iOS 等平台完整设置体验 | Provider 管理 UI 跨平台可用 | 未完全实现（Inspector 仅 macOS） |
 | `.apkg` / AnkiConnect | 深度 Anki 集成 | 未实现 |
 
 ## 4. 目录与职责
@@ -77,10 +78,10 @@
 
 ## 6. 运行流程（当前实现）
 
-1. 用户在 Input 页输入原文并点击 `Generate (Step 1)`。
+1. 用户在「输入」页填写原文并点击 `生成大纲（Step 1）`。
 2. 应用读取激活 Provider 与 Keychain API Key，调用 `Step1Pipeline`。
 3. 结果写入 `PlanOutline`、`Claim`、`Citation`，并追加 `GenerationRecord`。
-4. 用户点击 `Generate (Step 2)`，基于 `planJSON/planMarkdown` 调用 `Step2Pipeline`。
+4. 用户点击 `生成任务（Step 2）`，基于 `planJSON/planMarkdown` 调用 `Step2Pipeline`。
 5. 结果覆盖更新 `Flashcard` 与 `TodoItem`，并记录历史。
 6. 用户在 Cards/Todos 里编辑内容，或导出为 TSV/CSV。
 
@@ -102,7 +103,7 @@ xcodebuild -project demo.xcodeproj -scheme demo -destination 'generic/platform=i
 
 ## 8. 当前已知边界
 
-- Settings 场景与 Provider 编辑 UI 仅在 macOS 编译路径启用。
+- Provider Inspector 与编辑 UI 仅在 macOS 编译路径启用。
 - 引用真实性仍为“可展示状态”，没有自动验证服务。
 - Pipeline 目前依赖模型遵守 JSON 输出约定，虽有容错提取，但未引入更严格 schema 版本治理。
 - UI 自动化测试尚未建立，当前以 Core 单测 + 构建验证为主。

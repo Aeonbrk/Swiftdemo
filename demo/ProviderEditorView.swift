@@ -8,33 +8,74 @@
     private static let textAreaCornerRadius: CGFloat = 8
 
     @Environment(\.modelContext) private var modelContext
-    @Bindable var provider: LLMProvider
 
+    @Bindable var provider: LLMProvider
     @Binding var newAPIKey: String
     @Binding var message: String?
+
+    let isCompact: Bool
 
     @State private var isExtraHeadersExpanded = false
 
     private var hasKey: Bool {
       KeychainStore.hasPassword(
-        service: Self.keychainService, account: provider.apiKeyKeychainAccount)
+        service: Self.keychainService,
+        account: provider.apiKeyKeychainAccount
+      )
+    }
+
+    private var textEditorMinHeight: CGFloat {
+      isCompact ? 120 : 160
+    }
+
+    private var detailEditorMinHeight: CGFloat {
+      isCompact ? 180 : 240
     }
 
     var body: some View {
-      Form {
-        Section("基础信息") {
+      ScrollView {
+        VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
+          basicInfoSection
+          apiKeySection
+          activeSection
+          localMessageSection
+        }
+        .padding(UIStyle.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      .onChange(of: provider.id) { _, _ in
+        isExtraHeadersExpanded = false
+        newAPIKey = ""
+      }
+      .onChange(of: provider.name) { _, _ in
+        provider.updatedAt = .now
+      }
+      .onChange(of: provider.baseURL) { _, _ in
+        provider.updatedAt = .now
+      }
+      .onChange(of: provider.model) { _, _ in
+        provider.updatedAt = .now
+      }
+      .onChange(of: provider.extraHeadersJSON) { _, _ in
+        provider.updatedAt = .now
+      }
+    }
+
+    private var basicInfoSection: some View {
+      settingsCard(title: "基础信息") {
+        VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
           LabeledContent("名称") {
-            TextField("", text: $provider.name)
+            TextField("例如：OpenAI", text: $provider.name)
               .textFieldStyle(.roundedBorder)
           }
 
           LabeledContent("Base URL") {
-            TextField("", text: $provider.baseURL)
+            TextField("https://api.openai.com/v1", text: $provider.baseURL)
               .textFieldStyle(.roundedBorder)
           }
 
-          LabeledContent("模型 (Model)") {
-            TextField("", text: $provider.model)
+          LabeledContent("模型（Model）") {
+            TextField("例如：gpt-4.1-mini", text: $provider.model)
               .textFieldStyle(.roundedBorder)
           }
 
@@ -45,7 +86,7 @@
 
             TextEditor(text: $provider.extraHeadersJSON)
               .font(.system(.body, design: .monospaced))
-              .frame(minHeight: 160)
+              .frame(minHeight: textEditorMinHeight)
               .padding(8)
               .background {
                 RoundedRectangle(cornerRadius: Self.textAreaCornerRadius, style: .continuous)
@@ -57,17 +98,22 @@
               }
           }
         }
+      }
+    }
 
-        Section("API Key（Keychain）") {
+    private var apiKeySection: some View {
+      settingsCard(title: "API Key（Keychain）") {
+        VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
           LabeledContent("状态") {
             Text(hasKey ? "已保存" : "未保存")
               .foregroundStyle(.secondary)
           }
 
           LabeledContent("新 API Key") {
-            HStack(spacing: 8) {
-              SecureField("", text: $newAPIKey)
+            HStack(spacing: UIStyle.compactSpacing) {
+              SecureField("输入新的 API Key", text: $newAPIKey)
                 .textFieldStyle(.roundedBorder)
+
               Button("保存") {
                 saveKey()
               }
@@ -76,8 +122,12 @@
             }
           }
         }
+      }
+    }
 
-        Section("激活") {
+    private var activeSection: some View {
+      settingsCard(title: "激活") {
+        VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
           LabeledContent("状态") {
             Text(provider.isActive ? "已激活" : "未激活")
               .foregroundStyle(.secondary)
@@ -89,27 +139,38 @@
           .appSecondaryActionButtonStyle()
           .disabled(provider.isActive)
         }
+      }
+    }
 
-        if let message, message.isEmpty == false {
-          Section {
-            Text(message)
-              .font(.callout)
-              .foregroundStyle(.secondary)
-              .textSelection(.enabled)
-          }
-        }
+    @ViewBuilder
+    private var localMessageSection: some View {
+      if let message, message.isEmpty == false {
+        Text(message)
+          .font(.callout)
+          .foregroundStyle(.secondary)
+          .textSelection(.enabled)
+          .padding(.horizontal, UIStyle.panelInnerPadding)
+          .padding(.vertical, 6)
+          .appChipGlass()
       }
-      .formStyle(.grouped)
-      .padding(UIStyle.panelPadding)
-      .navigationTitle(provider.name)
-      .onChange(of: provider.id) { _, _ in
-        isExtraHeadersExpanded = false
-        newAPIKey = ""
+    }
+
+    private func settingsCard<Content: View>(
+      title: String,
+      @ViewBuilder content: () -> Content
+    ) -> some View {
+      VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+        Text(title)
+          .font(.headline)
+
+        content()
       }
-      .onChange(of: provider.name) { _, _ in provider.updatedAt = .now }
-      .onChange(of: provider.baseURL) { _, _ in provider.updatedAt = .now }
-      .onChange(of: provider.model) { _, _ in provider.updatedAt = .now }
-      .onChange(of: provider.extraHeadersJSON) { _, _ in provider.updatedAt = .now }
+      .padding(UIStyle.panelInnerPadding)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background {
+        RoundedRectangle(cornerRadius: UIStyle.panelCornerRadius, style: .continuous)
+          .fill(Color.secondary.opacity(0.08))
+      }
     }
 
     private func saveKey() {

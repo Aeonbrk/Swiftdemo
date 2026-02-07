@@ -4,11 +4,19 @@ import SwiftUI
 extension PlanInputView {
   func cardEditor(for card: Flashcard) -> some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
         cardReviewSection(for: card)
         cardFieldsSection(for: card)
-        cardTextSection(title: "Front", text: stringBinding(for: card, keyPath: \.front), minHeight: 120)
-        cardTextSection(title: "Back", text: stringBinding(for: card, keyPath: \.back), minHeight: 200)
+        cardTextSection(
+          title: "卡片正面",
+          text: stringBinding(for: card, keyPath: \.front),
+          minHeight: 120
+        )
+        cardTextSection(
+          title: "卡片背面",
+          text: stringBinding(for: card, keyPath: \.back),
+          minHeight: 220
+        )
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.vertical, 8)
@@ -17,7 +25,7 @@ extension PlanInputView {
 
   func todoEditor(for todo: TodoItem) -> some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: 12) {
+      VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
         todoFieldsSection(for: todo)
         todoSchedulingSection(for: todo)
         todoDetailSection(for: todo)
@@ -28,7 +36,7 @@ extension PlanInputView {
   }
 
   private func cardReviewSection(for card: Flashcard) -> some View {
-    GroupBox("Review") {
+    GroupBox("预览") {
       VStack(alignment: .leading, spacing: 8) {
         Text(isShowingCardBack ? card.back : card.front)
           .frame(maxWidth: .infinity, alignment: .leading)
@@ -39,12 +47,14 @@ extension PlanInputView {
           Button {
             isShowingCardBack.toggle()
           } label: {
-            Text(isShowingCardBack ? "Show Front" : "Show Back")
+            Text(isShowingCardBack ? "查看正面" : "查看背面")
           }
+          .appSecondaryActionButtonStyle()
 
           Spacer()
+
           if let dueAt = card.dueAt {
-            Text("Due: \(dueAt.formatted(date: .abbreviated, time: .shortened))")
+            Text("复习时间：\(dueAt.formatted(date: .abbreviated, time: .shortened))")
               .font(.caption)
               .foregroundStyle(.secondary)
           }
@@ -55,11 +65,11 @@ extension PlanInputView {
   }
 
   private func cardFieldsSection(for card: Flashcard) -> some View {
-    GroupBox("Fields") {
+    GroupBox("字段") {
       VStack(alignment: .leading, spacing: 12) {
-        TextField("Tags", text: stringBinding(for: card, keyPath: \.tagsRaw))
+        TextField("标签（逗号分隔）", text: stringBinding(for: card, keyPath: \.tagsRaw))
 
-        Picker("Mastery", selection: stringBinding(for: card, keyPath: \.masteryRaw)) {
+        Picker("掌握度", selection: stringBinding(for: card, keyPath: \.masteryRaw)) {
           Text("new").tag("new")
           Text("learning").tag("learning")
           Text("mature").tag("mature")
@@ -67,11 +77,11 @@ extension PlanInputView {
         }
         .pickerStyle(.segmented)
 
-        Toggle("Has due date", isOn: cardHasDueDateBinding(for: card))
+        Toggle("设置复习时间", isOn: cardHasDueDateBinding(for: card))
 
         if card.dueAt != nil {
           DatePicker(
-            "Due",
+            "复习时间",
             selection: dateBinding(for: card, keyPath: \.dueAt),
             displayedComponents: [.date, .hourAndMinute]
           )
@@ -101,17 +111,17 @@ extension PlanInputView {
   }
 
   private func todoFieldsSection(for todo: TodoItem) -> some View {
-    GroupBox("Fields") {
+    GroupBox("基础字段") {
       VStack(alignment: .leading, spacing: 12) {
-        TextField("Title", text: stringBinding(for: todo, keyPath: \.title))
-        TextField("Status", text: stringBinding(for: todo, keyPath: \.statusRaw))
-        TextField("Frequency", text: stringBinding(for: todo, keyPath: \.frequencyRaw))
+        TextField("任务标题", text: stringBinding(for: todo, keyPath: \.title))
+        TextField("状态（status）", text: stringBinding(for: todo, keyPath: \.statusRaw))
+        TextField("频率（frequency）", text: stringBinding(for: todo, keyPath: \.frequencyRaw))
 
-        Toggle("Has estimate", isOn: todoHasEstimateBinding(for: todo))
+        Toggle("设置预估时长", isOn: todoHasEstimateBinding(for: todo))
 
         if todo.estimatedMinutes != nil {
           Stepper(value: todoEstimatedMinutesBinding(for: todo), in: 5...600, step: 5) {
-            Text("Estimated minutes: \(todo.estimatedMinutes ?? 0)")
+            Text("预估分钟：\(todo.estimatedMinutes ?? 0)")
           }
         }
       }
@@ -120,23 +130,23 @@ extension PlanInputView {
   }
 
   private func todoSchedulingSection(for todo: TodoItem) -> some View {
-    GroupBox("Scheduling") {
+    GroupBox("时间安排") {
       VStack(alignment: .leading, spacing: 12) {
-        Toggle("Has scheduled time", isOn: todoHasScheduledTimeBinding(for: todo))
+        Toggle("设置计划时间", isOn: todoHasScheduledTimeBinding(for: todo))
 
         if todo.scheduledAt != nil {
           DatePicker(
-            "Scheduled",
+            "计划时间",
             selection: dateBinding(for: todo, keyPath: \.scheduledAt),
             displayedComponents: [.date, .hourAndMinute]
           )
         }
 
-        Toggle("Has due time", isOn: todoHasDueTimeBinding(for: todo))
+        Toggle("设置截止时间", isOn: todoHasDueTimeBinding(for: todo))
 
         if todo.dueAt != nil {
           DatePicker(
-            "Due",
+            "截止时间",
             selection: dateBinding(for: todo, keyPath: \.dueAt),
             displayedComponents: [.date, .hourAndMinute]
           )
@@ -147,10 +157,10 @@ extension PlanInputView {
   }
 
   private func todoDetailSection(for todo: TodoItem) -> some View {
-    GroupBox("Detail") {
+    GroupBox("详细说明") {
       TextEditor(text: stringBinding(for: todo, keyPath: \.detail))
         .font(.system(.body, design: .monospaced))
-        .frame(minHeight: 240)
+        .frame(minHeight: 260)
     }
   }
 

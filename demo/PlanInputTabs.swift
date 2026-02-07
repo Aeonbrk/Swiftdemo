@@ -4,13 +4,25 @@ import SwiftUI
 extension PlanInputView {
   var inputTab: some View {
     VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
-      TextField("标题", text: $document.title)
-        .textFieldStyle(.roundedBorder)
-        .font(.title3)
+      VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+        Text("计划标题")
+          .font(.caption)
+          .foregroundStyle(.secondary)
 
-      TextEditor(text: $document.rawInput)
-        .font(.system(.body, design: .monospaced))
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        TextField("例如：30 天掌握 Swift 并完成项目", text: $document.title)
+          .textFieldStyle(.roundedBorder)
+          .font(.title3)
+      }
+
+      VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+        Text("原始输入")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+
+        TextEditor(text: $document.rawInput)
+          .font(.system(.body, design: .monospaced))
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+      }
     }
     .padding(UIStyle.panelPadding)
   }
@@ -21,17 +33,21 @@ extension PlanInputView {
         if let outline = document.outline, outline.planMarkdown.isEmpty == false {
           previewText(for: outline.planMarkdown)
         } else {
-          ContentUnavailableView("暂无预览", systemImage: "doc.text.magnifyingglass")
+          AppEmptyStatePanel(
+            title: "暂无预览",
+            systemImage: "doc.text.magnifyingglass",
+            description: "先运行 Step 1，即可在这里查看结构化结果。"
+          )
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(UIStyle.panelPadding)
     }
-    .padding(UIStyle.panelPadding)
   }
 
   var cardsTab: some View {
     HStack(spacing: UIStyle.sectionSpacing) {
-      VStack(spacing: 8) {
+      VStack(spacing: UIStyle.compactSpacing) {
         cardsToolbar
         cardsList
       }
@@ -45,7 +61,7 @@ extension PlanInputView {
 
   var todosTab: some View {
     HStack(spacing: UIStyle.sectionSpacing) {
-      VStack(spacing: 8) {
+      VStack(spacing: UIStyle.compactSpacing) {
         todosToolbar
         todosList
       }
@@ -80,8 +96,8 @@ extension PlanInputView {
   }
 
   private var cardsToolbar: some View {
-    actionToolbar {
-      HStack(spacing: 8) {
+    AppActionBar {
+      HStack(spacing: UIStyle.compactSpacing) {
         Button {
           createFlashcard()
         } label: {
@@ -97,22 +113,27 @@ extension PlanInputView {
         .appSecondaryActionButtonStyle()
         .disabled(selectedCard == nil)
 
-        Spacer()
+        Spacer(minLength: UIStyle.compactSpacing)
 
-        Button {
-          exportFlashcardsTSV()
-        } label: {
-          Label("导出 TSV", systemImage: "square.and.arrow.up")
-        }
-        .appSecondaryActionButtonStyle()
-        .disabled(document.flashcards.isEmpty)
-
-        Button {
-          exportFlashcardsCSV()
-        } label: {
-          Label("导出 CSV", systemImage: "square.and.arrow.up")
-        }
-        .appSecondaryActionButtonStyle()
+        AppExportMenuButton(
+          title: "导出",
+          items: [
+            AppExportMenuItem(
+              id: "cards-tsv",
+              title: "导出 TSV",
+              systemImage: "tablecells"
+            ) {
+              exportFlashcardsTSV()
+            },
+            AppExportMenuItem(
+              id: "cards-csv",
+              title: "导出 CSV",
+              systemImage: "tablecells.fill"
+            ) {
+              exportFlashcardsCSV()
+            }
+          ]
+        )
         .disabled(document.flashcards.isEmpty)
       }
     }
@@ -126,6 +147,7 @@ extension PlanInputView {
       }
       .onDelete(perform: deleteFlashcards)
     }
+    .listStyle(.inset)
   }
 
   private var cardsDetail: some View {
@@ -133,17 +155,24 @@ extension PlanInputView {
       if let selectedCard {
         cardEditor(for: selectedCard)
       } else if document.flashcards.isEmpty {
-        ContentUnavailableView("暂无卡片", systemImage: "rectangle.stack.badge.plus")
+        AppEmptyStatePanel(
+          title: "暂无卡片",
+          systemImage: "rectangle.stack.badge.plus",
+          description: "运行 Step 2 后可自动生成，也可以手动新建。"
+        )
       } else {
-        ContentUnavailableView("请选择卡片", systemImage: "rectangle.stack")
+        AppEmptyStatePanel(
+          title: "请选择卡片",
+          systemImage: "rectangle.stack"
+        )
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
   private var todosToolbar: some View {
-    actionToolbar {
-      HStack(spacing: 8) {
+    AppActionBar {
+      HStack(spacing: UIStyle.compactSpacing) {
         Button {
           createTodo()
         } label: {
@@ -159,33 +188,22 @@ extension PlanInputView {
         .appSecondaryActionButtonStyle()
         .disabled(selectedTodo == nil)
 
-        Spacer()
+        Spacer(minLength: UIStyle.compactSpacing)
 
-        Button {
-          exportTodosCSV()
-        } label: {
-          Label("导出 CSV", systemImage: "square.and.arrow.up")
-        }
-        .appSecondaryActionButtonStyle()
+        AppExportMenuButton(
+          title: "导出",
+          items: [
+            AppExportMenuItem(
+              id: "todos-csv",
+              title: "导出 CSV",
+              systemImage: "tablecells.fill"
+            ) {
+              exportTodosCSV()
+            }
+          ]
+        )
         .disabled(document.todos.isEmpty)
       }
-    }
-  }
-
-  @ViewBuilder
-  private func actionToolbar<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-    if #available(iOS 26, macOS 26, *) {
-      GlassEffectContainer(spacing: 8) {
-        content()
-          .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
-          .padding(.vertical, UIStyle.toolbarVerticalPadding)
-          .appToolbarSurface()
-      }
-    } else {
-      content()
-        .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
-        .padding(.vertical, UIStyle.toolbarVerticalPadding)
-        .appToolbarSurface()
     }
   }
 
@@ -197,6 +215,7 @@ extension PlanInputView {
       }
       .onDelete(perform: deleteTodos)
     }
+    .listStyle(.inset)
   }
 
   private var todosDetail: some View {
@@ -204,9 +223,16 @@ extension PlanInputView {
       if let selectedTodo {
         todoEditor(for: selectedTodo)
       } else if document.todos.isEmpty {
-        ContentUnavailableView("暂无任务", systemImage: "checklist")
+        AppEmptyStatePanel(
+          title: "暂无任务",
+          systemImage: "checklist",
+          description: "运行 Step 2 后可自动生成，也可以手动补充。"
+        )
       } else {
-        ContentUnavailableView("请选择任务", systemImage: "checkmark.circle")
+        AppEmptyStatePanel(
+          title: "请选择任务",
+          systemImage: "checkmark.circle"
+        )
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -227,8 +253,9 @@ extension PlanInputView {
 
   private func cardRow(_ card: Flashcard) -> some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text(card.front.isEmpty ? "(正面为空)" : card.front)
+      Text(card.front.isEmpty ? "（正面为空）" : card.front)
         .lineLimit(2)
+
       HStack(spacing: 8) {
         Text(card.masteryRaw)
           .font(.caption)
@@ -246,15 +273,18 @@ extension PlanInputView {
 
   private func todoRow(_ todo: TodoItem) -> some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text(todo.title.isEmpty ? "(无标题)" : todo.title)
+      Text(todo.title.isEmpty ? "（无标题）" : todo.title)
         .lineLimit(2)
+
       HStack(spacing: 8) {
         Text(todo.statusRaw)
           .font(.caption)
           .foregroundStyle(.secondary)
+
         Text(todo.frequencyRaw)
           .font(.caption)
           .foregroundStyle(.secondary)
+
         if let scheduledAt = todo.scheduledAt {
           Text(scheduledAt.formatted(date: .abbreviated, time: .shortened))
             .font(.caption)
@@ -294,7 +324,9 @@ extension PlanInputView {
         Text(record.statusRaw)
           .font(.caption)
           .foregroundStyle(.secondary)
+
         Spacer()
+
         Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -306,7 +338,7 @@ extension PlanInputView {
       if let errorSummary = record.errorSummary, errorSummary.isEmpty == false {
         Text(errorSummary)
           .font(.caption)
-          .foregroundStyle(.red)
+          .foregroundStyle(UIStyle.destructiveStatusColor)
       }
     }
   }
