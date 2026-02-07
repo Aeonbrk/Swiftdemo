@@ -19,6 +19,7 @@ struct PlanInputView: View {
   #if os(macOS)
     @State private var selectedRoute: PlanWorkspaceRoute = .input
     @State private var isProviderInspectorVisible = false
+    @FocusState private var isProviderToggleFocused: Bool
   #endif
 
   var activeProviderName: String? {
@@ -144,13 +145,17 @@ extension PlanInputView {
   private var providerStatusView: some View {
     #if os(macOS)
       Button {
-        isProviderInspectorVisible = true
+        withAnimation(.snappy(duration: 0.2)) {
+          isProviderInspectorVisible.toggle()
+        }
       } label: {
         providerStatusChipContent
       }
+      .focused($isProviderToggleFocused)
       .buttonStyle(.plain)
       .appChipGlass(interactive: true)
-      .help("点击管理 Provider")
+      .appFocusRing(isFocused: isProviderToggleFocused)
+      .help(isProviderInspectorVisible ? "点击关闭 Provider 面板" : "点击打开 Provider 面板")
     #else
       providerStatusChipContent
         .appChipGlass()
@@ -172,7 +177,10 @@ extension PlanInputView {
       }
 
       #if os(macOS)
-        Label("管理", systemImage: "slider.horizontal.3")
+        Label(
+          isProviderInspectorVisible ? "收起" : "管理",
+          systemImage: isProviderInspectorVisible ? "chevron.right" : "slider.horizontal.3"
+        )
           .font(.caption)
           .foregroundStyle(.secondary)
       #endif
@@ -180,7 +188,7 @@ extension PlanInputView {
     .padding(.horizontal, 10)
     .padding(.vertical, 6)
     .font(.callout)
-    .foregroundStyle(.secondary)
+    .foregroundStyle(.primary)
   }
 
   private var mainTabs: some View {

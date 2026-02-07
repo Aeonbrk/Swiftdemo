@@ -4,104 +4,105 @@ import SwiftUI
 extension PlanInputView {
   var inputTab: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
-        VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+      AppRouteScaffold {
+        AppPanelCard {
           Text("计划标题")
             .font(.caption)
             .foregroundStyle(.secondary)
 
           TextField("例如：30 天掌握 Swift 并完成项目", text: $document.title)
             .textFieldStyle(.plain)
-            .appInputSurface()
+            .appFieldSurface()
             .font(.title3)
         }
-        .padding(UIStyle.panelInnerPadding)
-        .appPanelGlass()
 
-        VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+        AppPanelCard {
           Text("原始输入")
             .font(.caption)
             .foregroundStyle(.secondary)
 
           TextEditor(text: $document.rawInput)
             .font(.system(.body, design: .monospaced))
-            .appInputSurface()
+            .scrollContentBackground(.hidden)
+            .appFieldSurface(.field)
             .frame(minHeight: 360)
         }
-        .padding(UIStyle.panelInnerPadding)
-        .appPanelGlass()
       }
-      .padding(UIStyle.panelPadding)
-      .frame(maxWidth: .infinity, alignment: .leading)
     }
   }
 
   var previewTab: some View {
     ScrollView {
-      VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
+      AppRouteScaffold {
         if let outline = document.outline, outline.planMarkdown.isEmpty == false {
-          previewText(for: outline.planMarkdown)
+          AppPanelCard {
+            previewText(for: outline.planMarkdown)
+          }
         } else {
-          AppEmptyStatePanel(
-            title: "暂无预览",
-            systemImage: "doc.text.magnifyingglass",
-            description: "先运行 Step 1，即可在这里查看结构化结果。"
-          )
+          AppPanelCard {
+            AppEmptyStatePanel(
+              title: "暂无预览",
+              systemImage: "doc.text.magnifyingglass",
+              description: "先运行 Step 1，即可在这里查看结构化结果。"
+            )
+          }
         }
       }
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(UIStyle.panelPadding)
     }
   }
 
   var cardsTab: some View {
-    HStack(spacing: UIStyle.sectionSpacing) {
-      VStack(spacing: UIStyle.compactSpacing) {
+    AppRouteScaffold {
+      AppSplitWorkspace(leadingMinWidth: UIStyle.contentColumnMinWidth) {
         cardsToolbar
         cardsList
+      } trailing: {
+        cardsDetail
       }
-      .frame(minWidth: UIStyle.contentColumnMinWidth)
-
-      Divider()
-      cardsDetail
     }
-    .padding(UIStyle.panelPadding)
   }
 
   var todosTab: some View {
-    HStack(spacing: UIStyle.sectionSpacing) {
-      VStack(spacing: UIStyle.compactSpacing) {
+    AppRouteScaffold {
+      AppSplitWorkspace(leadingMinWidth: UIStyle.contentColumnMinWidth) {
         todosToolbar
         todosList
+      } trailing: {
+        todosDetail
       }
-      .frame(minWidth: UIStyle.contentColumnMinWidth)
-
-      Divider()
-      todosDetail
     }
-    .padding(UIStyle.panelPadding)
   }
 
   var citationsTab: some View {
-    List {
-      ForEach(document.citations.sorted(by: { $0.createdAt > $1.createdAt }), id: \.id) { citation in
-        citationRow(citation)
-          .padding(.vertical, 4)
+    AppRouteScaffold {
+      AppPanelList {
+        ForEach(document.citations.sorted(by: { $0.createdAt > $1.createdAt }), id: \.id) { citation in
+          citationRow(citation)
+            .padding(.horizontal, UIStyle.panelInnerPadding)
+            .padding(.vertical, UIStyle.listRowVerticalPadding)
+            .appRowGlass()
+            .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+        }
       }
     }
-    .listStyle(.inset)
-    .padding(UIStyle.panelPadding)
   }
 
   var historyTab: some View {
-    List {
-      ForEach(document.generations.sorted(by: { $0.createdAt > $1.createdAt }), id: \.id) { record in
-        generationRow(record)
-          .padding(.vertical, 4)
+    AppRouteScaffold {
+      AppPanelList {
+        ForEach(document.generations.sorted(by: { $0.createdAt > $1.createdAt }), id: \.id) { record in
+          generationRow(record)
+            .padding(.horizontal, UIStyle.panelInnerPadding)
+            .padding(.vertical, UIStyle.listRowVerticalPadding)
+            .appRowGlass()
+            .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+        }
       }
     }
-    .listStyle(.inset)
-    .padding(UIStyle.panelPadding)
   }
 
   private var cardsToolbar: some View {
@@ -152,11 +153,19 @@ extension PlanInputView {
     List(selection: $selectedCardID) {
       ForEach(document.flashcards.sorted(by: { $0.createdAt > $1.createdAt }), id: \.id) { card in
         cardRow(card)
+          .padding(.horizontal, UIStyle.panelInnerPadding)
+          .padding(.vertical, UIStyle.listRowVerticalPadding)
+          .appRowGlass()
           .tag(card.id)
+          .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
       }
       .onDelete(perform: deleteFlashcards)
     }
-    .listStyle(.inset)
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+    .appListContainerGlass()
   }
 
   private var cardsDetail: some View {
@@ -220,11 +229,19 @@ extension PlanInputView {
     List(selection: $selectedTodoID) {
       ForEach(document.todos.sorted(by: { $0.createdAt > $1.createdAt }), id: \.id) { todo in
         todoRow(todo)
+          .padding(.horizontal, UIStyle.panelInnerPadding)
+          .padding(.vertical, UIStyle.listRowVerticalPadding)
+          .appRowGlass()
           .tag(todo.id)
+          .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
       }
       .onDelete(perform: deleteTodos)
     }
-    .listStyle(.inset)
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+    .appListContainerGlass()
   }
 
   private var todosDetail: some View {

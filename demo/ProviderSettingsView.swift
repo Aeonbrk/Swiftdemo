@@ -15,6 +15,7 @@
     @State var newAPIKey = ""
     @State var message: String?
     @State var providerIDPendingDelete: UUID?
+    @FocusState var focusedProviderID: UUID?
 
     var selectedProvider: LLMProvider? {
       guard let selectedProviderID else { return nil }
@@ -46,6 +47,7 @@
       }
       .padding(isEmbedded ? UIStyle.panelInnerPadding : UIStyle.panelPadding)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+      .appPanelGlass()
       .onAppear {
         refreshSelectionIfNeeded()
       }

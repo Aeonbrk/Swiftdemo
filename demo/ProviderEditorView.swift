@@ -66,19 +66,19 @@
           LabeledContent("名称") {
             TextField("例如：OpenAI", text: $provider.name)
               .textFieldStyle(.plain)
-              .appInputSurface()
+              .appFieldSurface()
           }
 
           LabeledContent("Base URL") {
             TextField("https://api.openai.com/v1", text: $provider.baseURL)
               .textFieldStyle(.plain)
-              .appInputSurface()
+              .appFieldSurface()
           }
 
           LabeledContent("模型（Model）") {
             TextField("例如：gpt-4.1-mini", text: $provider.model)
               .textFieldStyle(.plain)
-              .appInputSurface()
+              .appFieldSurface()
           }
 
           DisclosureGroup("额外 Headers（JSON）", isExpanded: $isExtraHeadersExpanded) {
@@ -88,8 +88,9 @@
 
             TextEditor(text: $provider.extraHeadersJSON)
               .font(.system(.body, design: .monospaced))
+              .scrollContentBackground(.hidden)
               .frame(minHeight: textEditorMinHeight)
-              .appInputSurface()
+              .appFieldSurface(.field)
           }
         }
       }
@@ -107,7 +108,7 @@
             HStack(spacing: UIStyle.compactSpacing) {
               SecureField("输入新的 API Key", text: $newAPIKey)
                 .textFieldStyle(.plain)
-                .appInputSurface()
+                .appFieldSurface()
 
               Button("保存") {
                 saveKey()
@@ -162,10 +163,7 @@
       }
       .padding(UIStyle.panelInnerPadding)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .background {
-        RoundedRectangle(cornerRadius: UIStyle.panelCornerRadius, style: .continuous)
-          .fill(Color.secondary.opacity(0.08))
-      }
+      .appPanelGlass()
     }
 
     private func saveKey() {

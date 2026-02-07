@@ -97,48 +97,50 @@
           .padding(4)
         }
         .frame(maxHeight: isEmbedded ? 210 : 280)
-        .background {
-          RoundedRectangle(cornerRadius: UIStyle.panelCornerRadius, style: .continuous)
-            .fill(Color.secondary.opacity(0.08))
-        }
+        .appListContainerGlass()
       }
     }
 
     func providerRow(_ provider: LLMProvider) -> some View {
       let isSelected = selectedProviderID == provider.id
 
-      return HStack(spacing: UIStyle.compactSpacing) {
-        VStack(alignment: .leading, spacing: 2) {
-          Text(provider.name)
-            .font(.body.weight(.medium))
-            .lineLimit(1)
-
-          Text(provider.baseURL)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .truncationMode(.middle)
-        }
-
-        Spacer(minLength: UIStyle.compactSpacing)
-
-        if provider.isActive {
-          Image(systemName: "checkmark.circle.fill")
-            .foregroundStyle(UIStyle.positiveStatusColor)
-            .help("当前激活")
-        }
-      }
-      .padding(.horizontal, UIStyle.panelInnerPadding)
-      .padding(.vertical, UIStyle.listRowVerticalPadding)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .background {
-        RoundedRectangle(cornerRadius: UIStyle.rowCornerRadius, style: .continuous)
-          .fill(isSelected ? Color.accentColor.opacity(UIStyle.selectedRowOpacity) : Color.clear)
-      }
-      .contentShape(Rectangle())
-      .onTapGesture {
+      return Button {
         selectedProviderID = provider.id
+      } label: {
+        HStack(spacing: UIStyle.compactSpacing) {
+          VStack(alignment: .leading, spacing: 2) {
+            Text(provider.name)
+              .font(.body.weight(.medium))
+              .lineLimit(1)
+
+            Text(provider.baseURL)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .lineLimit(1)
+              .truncationMode(.middle)
+          }
+
+          Spacer(minLength: UIStyle.compactSpacing)
+
+          if provider.isActive {
+            Image(systemName: "checkmark.circle.fill")
+              .foregroundStyle(UIStyle.positiveStatusColor)
+              .help("当前激活")
+          }
+        }
+        .padding(.horizontal, UIStyle.panelInnerPadding)
+        .padding(.vertical, UIStyle.listRowVerticalPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+          RoundedRectangle(cornerRadius: UIStyle.rowCornerRadius, style: .continuous)
+            .fill(isSelected ? Color.accentColor.opacity(UIStyle.selectedRowOpacity) : Color.clear)
+        }
+        .appRowGlass(interactive: true)
+        .appFocusRing(isFocused: focusedProviderID == provider.id)
+        .contentShape(Rectangle())
       }
+      .focused($focusedProviderID, equals: provider.id)
+      .buttonStyle(.plain)
       .contextMenu {
         if provider.isActive == false {
           Button("设为激活") {

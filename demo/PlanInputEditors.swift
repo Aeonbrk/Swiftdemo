@@ -36,7 +36,7 @@ extension PlanInputView {
   }
 
   private func cardReviewSection(for card: Flashcard) -> some View {
-    GroupBox("预览") {
+    editorCard(title: "预览") {
       VStack(alignment: .leading, spacing: 8) {
         Text(isShowingCardBack ? card.back : card.front)
           .frame(maxWidth: .infinity, alignment: .leading)
@@ -65,11 +65,11 @@ extension PlanInputView {
   }
 
   private func cardFieldsSection(for card: Flashcard) -> some View {
-    GroupBox("字段") {
+    editorCard(title: "字段") {
       VStack(alignment: .leading, spacing: 12) {
         TextField("标签（逗号分隔）", text: stringBinding(for: card, keyPath: \.tagsRaw))
           .textFieldStyle(.plain)
-          .appInputSurface()
+          .appFieldSurface()
 
         Picker("掌握度", selection: stringBinding(for: card, keyPath: \.masteryRaw)) {
           Text("new").tag("new")
@@ -94,10 +94,11 @@ extension PlanInputView {
   }
 
   private func cardTextSection(title: String, text: Binding<String>, minHeight: CGFloat) -> some View {
-    GroupBox(title) {
+    editorCard(title: title) {
       TextEditor(text: text)
         .font(.system(.body, design: .monospaced))
-        .appInputSurface()
+        .scrollContentBackground(.hidden)
+        .appFieldSurface(.field)
         .frame(minHeight: minHeight)
     }
   }
@@ -114,17 +115,17 @@ extension PlanInputView {
   }
 
   private func todoFieldsSection(for todo: TodoItem) -> some View {
-    GroupBox("基础字段") {
+    editorCard(title: "基础字段") {
       VStack(alignment: .leading, spacing: 12) {
         TextField("任务标题", text: stringBinding(for: todo, keyPath: \.title))
           .textFieldStyle(.plain)
-          .appInputSurface()
+          .appFieldSurface()
         TextField("状态（status）", text: stringBinding(for: todo, keyPath: \.statusRaw))
           .textFieldStyle(.plain)
-          .appInputSurface()
+          .appFieldSurface()
         TextField("频率（frequency）", text: stringBinding(for: todo, keyPath: \.frequencyRaw))
           .textFieldStyle(.plain)
-          .appInputSurface()
+          .appFieldSurface()
 
         Toggle("设置预估时长", isOn: todoHasEstimateBinding(for: todo))
 
@@ -139,7 +140,7 @@ extension PlanInputView {
   }
 
   private func todoSchedulingSection(for todo: TodoItem) -> some View {
-    GroupBox("时间安排") {
+    editorCard(title: "时间安排") {
       VStack(alignment: .leading, spacing: 12) {
         Toggle("设置计划时间", isOn: todoHasScheduledTimeBinding(for: todo))
 
@@ -166,12 +167,28 @@ extension PlanInputView {
   }
 
   private func todoDetailSection(for todo: TodoItem) -> some View {
-    GroupBox("详细说明") {
+    editorCard(title: "详细说明") {
       TextEditor(text: stringBinding(for: todo, keyPath: \.detail))
         .font(.system(.body, design: .monospaced))
-        .appInputSurface()
+        .scrollContentBackground(.hidden)
+        .appFieldSurface(.field)
         .frame(minHeight: 260)
     }
+  }
+
+  private func editorCard<Content: View>(
+    title: String,
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+      Text(title)
+        .font(.headline)
+
+      content()
+    }
+    .padding(UIStyle.panelInnerPadding)
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .appPanelGlass()
   }
 
   private func todoHasEstimateBinding(for todo: TodoItem) -> Binding<Bool> {

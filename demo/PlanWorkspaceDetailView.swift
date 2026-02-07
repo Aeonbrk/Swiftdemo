@@ -27,6 +27,8 @@ struct PlanWorkspaceDetailView: View {
         historyView
       }
     }
+    .id(selectedRoute)
+    .animation(.snappy(duration: 0.2), value: selectedRoute)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 }

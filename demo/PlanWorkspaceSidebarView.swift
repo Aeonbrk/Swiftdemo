@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PlanWorkspaceSidebarView: View {
   @Binding var selectedRoute: PlanWorkspaceRoute
+  @FocusState private var focusedRoute: PlanWorkspaceRoute?
 
   var body: some View {
     List {
@@ -27,7 +28,7 @@ struct PlanWorkspaceSidebarView: View {
     .scrollContentBackground(.hidden)
     .padding(.vertical, 4)
     .frame(maxHeight: .infinity)
-    .appPanelGlass()
+    .appSidebarSurface()
     .accessibilityIdentifier("plan_workspace_sidebar")
   }
 
@@ -57,8 +58,11 @@ struct PlanWorkspaceSidebarView: View {
         RoundedRectangle(cornerRadius: UIStyle.rowCornerRadius, style: .continuous)
           .fill(selectedRoute == route ? Color.accentColor.opacity(UIStyle.selectedRowOpacity) : Color.clear)
       }
+      .appRowGlass(interactive: true)
+      .appFocusRing(isFocused: focusedRoute == route)
       .contentShape(Rectangle())
     }
+    .focused($focusedRoute, equals: route)
     .buttonStyle(.plain)
     .keyboardShortcut(route.keyboardShortcutKey, modifiers: .command)
   }
