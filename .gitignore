@@ -1,0 +1,10 @@
+.codex/
+
+# Xcode
+DerivedData/
+*.xcresult
+xcuserdata/
+
+# SwiftPM
+.build/
+.swiftpm/

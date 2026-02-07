@@ -1,0 +1,380 @@
+import Core
+import SwiftData
+import SwiftUI
+import UniformTypeIdentifiers
+
+#if canImport(AppKit)
+  import AppKit
+#endif
+
+extension PlanInputView {
+  func stringBinding<T: AnyObject>(
+    for object: T,
+    keyPath: ReferenceWritableKeyPath<T, String>
+  ) -> Binding<String> {
+    Binding(
+      get: { object[keyPath: keyPath] },
+      set: { newValue in
+        object[keyPath: keyPath] = newValue
+        markItemUpdatedIfNeeded(object)
+        document.updatedAt = .now
+      }
+    )
+  }
+  func dateBinding<T: AnyObject>(
+    for object: T,
+    keyPath: ReferenceWritableKeyPath<T, Date?>
+  ) -> Binding<Date> {
+    Binding(
+      get: { object[keyPath: keyPath] ?? .now },
+      set: { newValue in
+        object[keyPath: keyPath] = newValue
+        markItemUpdatedIfNeeded(object)
+        document.updatedAt = .now
+      }
+    )
+  }
+  func createFlashcard() {
+    let card = Flashcard(front: "", back: "", tagsRaw: "")
+    card.document = document
+    modelContext.insert(card)
+    selectedCardID = card.id
+    document.updatedAt = .now
+  }
+  func deleteSelectedFlashcard() {
+    guard let selectedCard else { return }
+    modelContext.delete(selectedCard)
+    selectedCardID = document.flashcards.first(where: { $0.id != selectedCard.id })?.id
+    document.updatedAt = .now
+  }
+  func deleteFlashcards(at offsets: IndexSet) {
+    let sorted = document.flashcards.sorted(by: { $0.createdAt > $1.createdAt })
+    for index in offsets {
+      modelContext.delete(sorted[index])
+    }
+
+    if let selectedCardID,
+      document.flashcards.contains(where: { $0.id == selectedCardID }) == false {
+      self.selectedCardID = document.flashcards.first?.id
+    }
+    document.updatedAt = .now
+  }
+  func exportFlashcardsTSV() {
+    let content = FlashcardsExporter.tsv(cards: document.flashcards)
+    exportTextFile(
+      content: content,
+      suggestedFileName: "\(document.title)-cards.tsv",
+      contentType: .tabSeparatedText
+    )
+  }
+  func exportFlashcardsCSV() {
+    let content = FlashcardsExporter.csv(cards: document.flashcards)
+    exportTextFile(
+      content: content,
+      suggestedFileName: "\(document.title)-cards.csv",
+      contentType: .commaSeparatedText
+    )
+  }
+  func createTodo() {
+    let todo = TodoItem(
+      title: "",
+      detail: "",
+      estimatedMinutes: nil,
+      statusRaw: "todo",
+      frequencyRaw: "once"
+    )
+    todo.document = document
+    modelContext.insert(todo)
+    selectedTodoID = todo.id
+    document.updatedAt = .now
+  }
+  func deleteSelectedTodo() {
+    guard let selectedTodo else { return }
+    modelContext.delete(selectedTodo)
+    selectedTodoID = document.todos.first(where: { $0.id != selectedTodo.id })?.id
+    document.updatedAt = .now
+  }
+  func deleteTodos(at offsets: IndexSet) {
+    let sorted = document.todos.sorted(by: { $0.createdAt > $1.createdAt })
+    for index in offsets {
+      modelContext.delete(sorted[index])
+    }
+
+    if let selectedTodoID,
+      document.todos.contains(where: { $0.id == selectedTodoID }) == false {
+      self.selectedTodoID = document.todos.first?.id
+    }
+    document.updatedAt = .now
+  }
+  func exportTodosCSV() {
+    let sorted = document.todos.sorted(by: { $0.createdAt < $1.createdAt })
+    let content = TodosExporter.csv(todos: sorted)
+    exportTextFile(
+      content: content,
+      suggestedFileName: "\(document.title)-todos.csv",
+      contentType: .commaSeparatedText
+    )
+  }
+  func generateStep1() {
+    beginGeneration()
+
+    let rawInput = document.rawInput
+    guard let context = prepareRequestContext(promptVersion: Step1Pipeline.promptVersion) else {
+      return
+    }
+
+    Task {
+      do {
+        let output = try await runStep1Pipeline(rawInput: rawInput, context: context)
+        await MainActor.run {
+          applyStep1Output(output, to: document, in: modelContext)
+          finishGenerationSuccess(
+            promptVersion: Step1Pipeline.promptVersion,
+            provider: context.providerSnapshot,
+            successMessage: "Generated Step 1 output."
+          )
+        }
+      } catch {
+        await MainActor.run {
+          let message = planInputGenerationErrorMessage(error)
+          failGeneration(
+            promptVersion: Step1Pipeline.promptVersion,
+            provider: context.providerSnapshot,
+            message: message
+          )
+        }
+      }
+    }
+  }
+  func generateStep2() {
+    beginGeneration()
+
+    guard let outline = document.outline else {
+      failGeneration(
+        promptVersion: Step2Pipeline.promptVersion,
+        provider: nil,
+        message: "Run Step 1 first."
+      )
+      return
+    }
+
+    guard let context = prepareRequestContext(promptVersion: Step2Pipeline.promptVersion) else {
+      return
+    }
+
+    Task {
+      do {
+        let output = try await runStep2Pipeline(outline: outline, context: context)
+        await MainActor.run {
+          let selection = applyStep2Output(output, to: document, in: modelContext)
+          selectedCardID = selection.selectedCardID
+          selectedTodoID = selection.selectedTodoID
+          finishGenerationSuccess(
+            promptVersion: Step2Pipeline.promptVersion,
+            provider: context.providerSnapshot,
+            successMessage: "Generated Step 2 output."
+          )
+        }
+      } catch {
+        await MainActor.run {
+          let message = planInputGenerationErrorMessage(error)
+          failGeneration(
+            promptVersion: Step2Pipeline.promptVersion,
+            provider: context.providerSnapshot,
+            message: message
+          )
+        }
+      }
+    }
+  }
+  func fetchActiveProvider() throws -> LLMProvider? {
+    let descriptor = FetchDescriptor<LLMProvider>(predicate: #Predicate { $0.isActive == true })
+    return try modelContext.fetch(descriptor).first
+  }
+  private func markItemUpdatedIfNeeded<T: AnyObject>(_ object: T) {
+    if let card = object as? Flashcard {
+      card.updatedAt = .now
+      return
+    }
+
+    if let todo = object as? TodoItem {
+      todo.updatedAt = .now
+    }
+  }
+  private func exportTextFile(content: String, suggestedFileName: String, contentType: UTType) {
+    #if canImport(AppKit)
+      let panel = NSSavePanel()
+      panel.allowedContentTypes = [contentType]
+      panel.canCreateDirectories = true
+      panel.isExtensionHidden = false
+      panel.nameFieldStringValue = suggestedFileName
+
+      let response = panel.runModal()
+      guard response == .OK, let url = panel.url else { return }
+
+      do {
+        try content.write(to: url, atomically: true, encoding: .utf8)
+        message = "Exported \(url.lastPathComponent)."
+        errorMessage = nil
+      } catch {
+        errorMessage = "Export failed: \(error)"
+      }
+    #else
+      errorMessage = "Export is only supported on macOS."
+    #endif
+  }
+  private func runStep1Pipeline(rawInput: String, context: GenerationRequestContext) async throws
+    -> Step1Output {
+    let client = OpenAICompatibleClient(
+      baseURL: context.baseURL,
+      apiKey: context.apiKey,
+      extraHeaders: context.extraHeaders
+    )
+    let pipeline = Step1Pipeline(client: client, model: context.providerSnapshot.model)
+    return try await pipeline.run(rawInput: rawInput)
+  }
+  private func runStep2Pipeline(outline: PlanOutline, context: GenerationRequestContext) async throws
+    -> Step2Output {
+    let client = OpenAICompatibleClient(
+      baseURL: context.baseURL,
+      apiKey: context.apiKey,
+      extraHeaders: context.extraHeaders
+    )
+    let pipeline = Step2Pipeline(client: client, model: context.providerSnapshot.model)
+    return try await pipeline.run(planJSON: outline.planJSON, planMarkdown: outline.planMarkdown)
+  }
+  private func beginGeneration() {
+    errorMessage = nil
+    message = nil
+    isGenerating = true
+  }
+  private func failGeneration(promptVersion: String, provider: ProviderSnapshot?, message: String) {
+    errorMessage = message
+    let input = GenerationRecordInput(
+      provider: provider,
+      promptVersion: promptVersion,
+      statusRaw: "failed",
+      errorSummary: message
+    )
+    appendGenerationRecord(input, document: document, in: modelContext)
+    isGenerating = false
+  }
+  private func finishGenerationSuccess(
+    promptVersion: String,
+    provider: ProviderSnapshot,
+    successMessage: String
+  ) {
+    let input = GenerationRecordInput(
+      provider: provider,
+      promptVersion: promptVersion,
+      statusRaw: "success",
+      errorSummary: nil
+    )
+    appendGenerationRecord(input, document: document, in: modelContext)
+
+    document.updatedAt = .now
+    do {
+      try modelContext.save()
+    } catch {
+      errorMessage = "Failed to save: \(error)"
+    }
+
+    message = successMessage
+    isGenerating = false
+  }
+  private func prepareRequestContext(promptVersion: String) -> GenerationRequestContext? {
+    guard let providerSnapshot = loadProviderSnapshot(promptVersion: promptVersion) else {
+      return nil
+    }
+
+    guard let baseURL = validateBaseURL(providerSnapshot, promptVersion: promptVersion) else {
+      return nil
+    }
+
+    guard let apiKey = loadAPIKey(providerSnapshot, promptVersion: promptVersion) else {
+      return nil
+    }
+
+    guard let extraHeaders = loadExtraHeaders(providerSnapshot, promptVersion: promptVersion) else {
+      return nil
+    }
+
+    return GenerationRequestContext(
+      providerSnapshot: providerSnapshot,
+      baseURL: baseURL,
+      apiKey: apiKey,
+      extraHeaders: extraHeaders
+    )
+  }
+  private func loadProviderSnapshot(promptVersion: String) -> ProviderSnapshot? {
+    do {
+      guard let provider = try fetchActiveProvider() else {
+        failGeneration(
+          promptVersion: promptVersion,
+          provider: nil,
+          message: "No active provider. Set one in Settings."
+        )
+        return nil
+      }
+      return ProviderSnapshot(provider: provider)
+    } catch {
+      failGeneration(
+        promptVersion: promptVersion,
+        provider: nil,
+        message: "Failed to load provider: \(error)"
+      )
+      return nil
+    }
+  }
+  private func validateBaseURL(_ provider: ProviderSnapshot, promptVersion: String) -> URL? {
+    guard let baseURL = URL(string: provider.baseURL) else {
+      failGeneration(
+        promptVersion: promptVersion,
+        provider: provider,
+        message: "Invalid baseURL: \(provider.baseURL)"
+      )
+      return nil
+    }
+
+    return baseURL
+  }
+  private func loadAPIKey(_ provider: ProviderSnapshot, promptVersion: String) -> String? {
+    do {
+      let apiKey = try KeychainStore.getPassword(
+        service: KeychainStore.llmService,
+        account: provider.apiKeyKeychainAccount
+      ) ?? ""
+
+      guard apiKey.isEmpty == false else {
+        failGeneration(
+          promptVersion: promptVersion,
+          provider: provider,
+          message: "Missing API key for provider '\(provider.name)'. Set it in Settings."
+        )
+        return nil
+      }
+
+      return apiKey
+    } catch {
+      failGeneration(
+        promptVersion: promptVersion,
+        provider: provider,
+        message: "Failed to read API key: \(error)"
+      )
+      return nil
+    }
+  }
+  private func loadExtraHeaders(_ provider: ProviderSnapshot, promptVersion: String)
+    -> [String: String]? {
+    do {
+      return try parseProviderExtraHeadersJSON(provider.extraHeadersJSON)
+    } catch {
+      failGeneration(
+        promptVersion: promptVersion,
+        provider: provider,
+        message: "Invalid extraHeadersJSON: \(error)"
+      )
+      return nil
+    }
+  }
+}

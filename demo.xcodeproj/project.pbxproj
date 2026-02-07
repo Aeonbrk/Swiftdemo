@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3DE96E7F3C114C09B155012A /* Core in Frameworks */ = {isa = PBXBuildFile; productRef = A3EB00332B384C89AAD964EF /* Core */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		89E054F32F0FFC2400EB265A /* demo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = demo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3DE96E7F3C114C09B155012A /* Core in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = demo;
 			packageProductDependencies = (
+				A3EB00332B384C89AAD964EF /* Core */,
 			);
 			productName = demo;
 			productReference = 89E054F32F0FFC2400EB265A /* demo.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 89E054EA2F0FFC2400EB265A;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				8F8A0E2CEF434133B0417483 /* XCLocalSwiftPackageReference "Core" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 89E054F42F0FFC2400EB265A /* Products */;
 			projectDirPath = "";
@@ -247,8 +256,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -289,8 +299,9 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -345,6 +356,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		8F8A0E2CEF434133B0417483 /* XCLocalSwiftPackageReference "Core" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Core;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A3EB00332B384C89AAD964EF /* Core */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8F8A0E2CEF434133B0417483 /* XCLocalSwiftPackageReference "Core" */;
+			productName = Core;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 89E054EB2F0FFC2400EB265A /* Project object */;
 }
