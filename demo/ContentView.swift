@@ -8,9 +8,6 @@
 import Core
 import SwiftData
 import SwiftUI
-#if canImport(AppKit)
-  import AppKit
-#endif
 
 struct ContentView: View {
   @Environment(\.modelContext) private var modelContext
@@ -61,18 +58,6 @@ struct ContentView: View {
       .searchable(text: $searchText, prompt: "搜索计划标题")
       .navigationTitle("学习计划")
       .toolbar {
-        #if os(macOS)
-          ToolbarItem(placement: .navigation) {
-            Button {
-              toggleSidebar()
-            } label: {
-              Image(systemName: "sidebar.left")
-            }
-            .appSecondaryActionButtonStyle()
-            .help("展开或收起文档侧栏")
-          }
-        #endif
-
         ToolbarItem(placement: .primaryAction) {
           Button(action: createDocument) {
             Label("新建计划", systemImage: "plus")
@@ -115,14 +100,6 @@ struct ContentView: View {
     }
   }
 
-  #if os(macOS)
-    private func toggleSidebar() {
-      NSApp.keyWindow?.firstResponder?.tryToPerform(
-        #selector(NSSplitViewController.toggleSidebar(_:)),
-        with: nil
-      )
-    }
-  #endif
 }
 
 #Preview {

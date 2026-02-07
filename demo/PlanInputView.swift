@@ -18,7 +18,6 @@ struct PlanInputView: View {
 
   #if os(macOS)
     @State private var selectedRoute: PlanWorkspaceRoute = .input
-    @State private var workspaceColumnVisibility: NavigationSplitViewVisibility = .all
     @State private var isProviderInspectorVisible = false
   #endif
 
@@ -79,32 +78,6 @@ extension PlanInputView {
 
   private var headerBarContent: some View {
     HStack(spacing: UIStyle.compactSpacing) {
-      #if os(macOS)
-        Button {
-          toggleWorkspaceSidebar()
-        } label: {
-          Image(systemName: workspaceColumnVisibility == .detailOnly ? "sidebar.left" : "sidebar.leading")
-        }
-        .appSecondaryActionButtonStyle()
-        .keyboardShortcut("0", modifiers: [.command, .option])
-        .help("展开或收起工作区侧栏")
-
-        Menu {
-          ForEach(PlanWorkspaceRoute.allCases) { route in
-            Button {
-              selectedRoute = route
-            } label: {
-              Label(route.title, systemImage: route.systemImage)
-            }
-            .keyboardShortcut(route.keyboardShortcutKey, modifiers: .command)
-          }
-        } label: {
-          Label(selectedRoute.title, systemImage: selectedRoute.systemImage)
-        }
-        .appSecondaryActionButtonStyle()
-        .help("切换工作区视图")
-      #endif
-
       Button {
         generateStep1()
       } label: {
@@ -130,17 +103,6 @@ extension PlanInputView {
 
       Spacer(minLength: UIStyle.compactSpacing)
       providerStatusView
-
-      #if os(macOS)
-        Button {
-          toggleProviderInspector()
-        } label: {
-          Image(systemName: isProviderInspectorVisible ? "sidebar.right" : "sidebar.trailing")
-        }
-        .appSecondaryActionButtonStyle()
-        .keyboardShortcut("9", modifiers: [.command, .option])
-        .help("展开或收起 Provider Inspector")
-      #endif
     }
     .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
     .padding(.vertical, UIStyle.toolbarVerticalPadding)
@@ -191,20 +153,13 @@ extension PlanInputView {
         Text("未激活 Provider")
           .lineLimit(1)
       }
-
-      #if os(macOS)
-        Button(activeProviderName == nil ? "配置" : "管理") {
-          isProviderInspectorVisible = true
-        }
-        .appSecondaryActionButtonStyle()
-        .help("打开 Provider Inspector")
-      #endif
     }
     .padding(.horizontal, 10)
     .padding(.vertical, 6)
     .font(.callout)
     .foregroundStyle(.secondary)
-    .appChipGlass(interactive: true)
+    .appChipGlass()
+    .help("通过窗口右上角的面板按钮管理 Provider")
   }
 
   private var mainTabs: some View {
@@ -286,14 +241,9 @@ extension PlanInputView {
     }
 
     private var macWorkspaceContent: some View {
-      NavigationSplitView(columnVisibility: $workspaceColumnVisibility) {
+      HStack(spacing: UIStyle.workspaceColumnSpacing) {
         PlanWorkspaceSidebarView(selectedRoute: $selectedRoute)
-          .navigationSplitViewColumnWidth(
-            min: UIStyle.workspaceSidebarMinWidth,
-            ideal: UIStyle.workspaceSidebarIdealWidth,
-            max: UIStyle.workspaceSidebarIdealWidth + 20
-          )
-      } detail: {
+
         PlanWorkspaceDetailView(
           selectedRoute: selectedRoute,
           inputView: AnyView(inputTab),
@@ -306,7 +256,6 @@ extension PlanInputView {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .appPanelGlass()
       }
-      .navigationSplitViewStyle(.balanced)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -319,18 +268,6 @@ extension PlanInputView {
         ideal: UIStyle.providerInspectorWidth,
         max: UIStyle.providerInspectorMaxWidth
       )
-    }
-
-    private func toggleWorkspaceSidebar() {
-      withAnimation(.snappy(duration: 0.2)) {
-        workspaceColumnVisibility = workspaceColumnVisibility == .detailOnly ? .all : .detailOnly
-      }
-    }
-
-    private func toggleProviderInspector() {
-      withAnimation(.snappy(duration: 0.2)) {
-        isProviderInspectorVisible.toggle()
-      }
     }
 
     private func closeProviderInspector() {
