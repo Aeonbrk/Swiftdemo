@@ -150,7 +150,7 @@ extension PlanInputView {
       }
       .buttonStyle(.plain)
       .appChipGlass(interactive: true)
-      .help("点击打开 Provider 设置")
+      .help("点击管理 Provider")
     #else
       providerStatusChipContent
         .appChipGlass()
@@ -172,7 +172,7 @@ extension PlanInputView {
       }
 
       #if os(macOS)
-        Image(systemName: "slider.horizontal.3")
+        Label("管理", systemImage: "slider.horizontal.3")
           .font(.caption)
           .foregroundStyle(.secondary)
       #endif
@@ -267,7 +267,7 @@ extension PlanInputView {
           .frame(
             minWidth: UIStyle.workspaceSidebarMinWidth,
             idealWidth: UIStyle.workspaceSidebarIdealWidth,
-            maxWidth: UIStyle.workspaceSidebarIdealWidth + 16
+            maxWidth: UIStyle.workspaceSidebarIdealWidth
           )
 
         PlanWorkspaceDetailView(

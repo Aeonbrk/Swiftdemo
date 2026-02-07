@@ -68,6 +68,8 @@ extension PlanInputView {
     GroupBox("字段") {
       VStack(alignment: .leading, spacing: 12) {
         TextField("标签（逗号分隔）", text: stringBinding(for: card, keyPath: \.tagsRaw))
+          .textFieldStyle(.plain)
+          .appInputSurface()
 
         Picker("掌握度", selection: stringBinding(for: card, keyPath: \.masteryRaw)) {
           Text("new").tag("new")
@@ -95,6 +97,7 @@ extension PlanInputView {
     GroupBox(title) {
       TextEditor(text: text)
         .font(.system(.body, design: .monospaced))
+        .appInputSurface()
         .frame(minHeight: minHeight)
     }
   }
@@ -114,8 +117,14 @@ extension PlanInputView {
     GroupBox("基础字段") {
       VStack(alignment: .leading, spacing: 12) {
         TextField("任务标题", text: stringBinding(for: todo, keyPath: \.title))
+          .textFieldStyle(.plain)
+          .appInputSurface()
         TextField("状态（status）", text: stringBinding(for: todo, keyPath: \.statusRaw))
+          .textFieldStyle(.plain)
+          .appInputSurface()
         TextField("频率（frequency）", text: stringBinding(for: todo, keyPath: \.frequencyRaw))
+          .textFieldStyle(.plain)
+          .appInputSurface()
 
         Toggle("设置预估时长", isOn: todoHasEstimateBinding(for: todo))
 
@@ -160,6 +169,7 @@ extension PlanInputView {
     GroupBox("详细说明") {
       TextEditor(text: stringBinding(for: todo, keyPath: \.detail))
         .font(.system(.body, design: .monospaced))
+        .appInputSurface()
         .frame(minHeight: 260)
     }
   }

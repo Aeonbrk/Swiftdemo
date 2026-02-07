@@ -10,7 +10,8 @@ extension PlanInputView {
           .foregroundStyle(.secondary)
 
         TextField("例如：30 天掌握 Swift 并完成项目", text: $document.title)
-          .textFieldStyle(.roundedBorder)
+          .textFieldStyle(.plain)
+          .appInputSurface()
           .font(.title3)
       }
 
@@ -21,6 +22,7 @@ extension PlanInputView {
 
         TextEditor(text: $document.rawInput)
           .font(.system(.body, design: .monospaced))
+          .appInputSurface()
           .frame(maxWidth: .infinity, maxHeight: .infinity)
       }
     }

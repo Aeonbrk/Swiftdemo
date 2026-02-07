@@ -15,6 +15,7 @@ struct ContentView: View {
 
   @State private var selectedDocumentID: UUID?
   @State private var searchText: String = ""
+  @State private var isCreateButtonHovered = false
 
   private var filteredDocuments: [PlanDocument] {
     let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -57,16 +58,30 @@ struct ContentView: View {
       }
       .searchable(text: $searchText, prompt: "搜索计划标题")
       .navigationTitle("学习计划")
+      .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 240)
       .safeAreaInset(edge: .bottom) {
         HStack {
+          Spacer()
           Button(action: createDocument) {
-            Label("新建计划", systemImage: "plus")
+            Image(systemName: "plus")
+              .font(.headline.weight(.semibold))
+              .frame(width: UIStyle.floatingAddButtonSize, height: UIStyle.floatingAddButtonSize)
           }
-          .appSecondaryActionButtonStyle()
-          Spacer(minLength: UIStyle.compactSpacing)
+          .appPrimaryActionButtonStyle()
+          .scaleEffect(isCreateButtonHovered ? 1.05 : 1.0)
+          .animation(.easeOut(duration: 0.15), value: isCreateButtonHovered)
+          .help("新建计划")
+          .accessibilityLabel("新建计划")
+          #if os(macOS)
+            .onHover { isHovering in
+              isCreateButtonHovered = isHovering
+            }
+          #endif
+          Spacer()
         }
         .padding(.horizontal, UIStyle.panelInnerPadding)
-        .padding(.top, 6)
+        .padding(.top, UIStyle.compactSpacing)
+        .padding(.bottom, UIStyle.floatingAddButtonBottomPadding)
       }
     } detail: {
       if let document = selectedDocument {

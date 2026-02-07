@@ -5,7 +5,6 @@
 
   struct ProviderEditorView: View {
     private static let keychainService = KeychainStore.llmService
-    private static let textAreaCornerRadius: CGFloat = 8
 
     @Environment(\.modelContext) private var modelContext
 
@@ -66,17 +65,20 @@
         VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
           LabeledContent("名称") {
             TextField("例如：OpenAI", text: $provider.name)
-              .textFieldStyle(.roundedBorder)
+              .textFieldStyle(.plain)
+              .appInputSurface()
           }
 
           LabeledContent("Base URL") {
             TextField("https://api.openai.com/v1", text: $provider.baseURL)
-              .textFieldStyle(.roundedBorder)
+              .textFieldStyle(.plain)
+              .appInputSurface()
           }
 
           LabeledContent("模型（Model）") {
             TextField("例如：gpt-4.1-mini", text: $provider.model)
-              .textFieldStyle(.roundedBorder)
+              .textFieldStyle(.plain)
+              .appInputSurface()
           }
 
           DisclosureGroup("额外 Headers（JSON）", isExpanded: $isExtraHeadersExpanded) {
@@ -87,15 +89,7 @@
             TextEditor(text: $provider.extraHeadersJSON)
               .font(.system(.body, design: .monospaced))
               .frame(minHeight: textEditorMinHeight)
-              .padding(8)
-              .background {
-                RoundedRectangle(cornerRadius: Self.textAreaCornerRadius, style: .continuous)
-                  .fill(Color(nsColor: .textBackgroundColor))
-              }
-              .overlay {
-                RoundedRectangle(cornerRadius: Self.textAreaCornerRadius, style: .continuous)
-                  .stroke(.separator, lineWidth: 1)
-              }
+              .appInputSurface()
           }
         }
       }
@@ -112,7 +106,8 @@
           LabeledContent("新 API Key") {
             HStack(spacing: UIStyle.compactSpacing) {
               SecureField("输入新的 API Key", text: $newAPIKey)
-                .textFieldStyle(.roundedBorder)
+                .textFieldStyle(.plain)
+                .appInputSurface()
 
               Button("保存") {
                 saveKey()
