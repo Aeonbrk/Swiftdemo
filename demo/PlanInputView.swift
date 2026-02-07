@@ -4,9 +4,8 @@ import SwiftUI
 
 struct PlanInputView: View {
   @Environment(\.modelContext) var modelContext
-  #if os(macOS)
-    @Environment(\.openSettings) var openSettings
-  #endif
+  @Query(filter: #Predicate<LLMProvider> { $0.isActive == true }, sort: \LLMProvider.updatedAt, order: .reverse)
+  private var activeProviders: [LLMProvider]
 
   @Bindable var document: PlanDocument
 
@@ -16,6 +15,9 @@ struct PlanInputView: View {
   @State var selectedCardID: UUID?
   @State var selectedTodoID: UUID?
   @State var isShowingCardBack = false
+  #if os(macOS)
+    @State private var presentedSheetRoute: PlanInputSheetRoute?
+  #endif
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
@@ -23,20 +25,49 @@ struct PlanInputView: View {
       generationStatusView
       mainTabs
     }
-    .padding()
+    .padding(UIStyle.panelPadding)
     .navigationTitle(document.title)
     .onChange(of: document.title) { _, _ in document.updatedAt = .now }
     .onChange(of: document.rawInput) { _, _ in document.updatedAt = .now }
     .onChange(of: selectedCardID) { _, _ in isShowingCardBack = false }
+    #if os(macOS)
+      .sheet(item: $presentedSheetRoute) { route in
+        switch route {
+        case .providerSettings:
+          NavigationStack {
+            ProviderSettingsView()
+          }
+          .frame(minWidth: 900, minHeight: 560)
+        }
+      }
+    #endif
   }
 
+  @ViewBuilder
   private var headerBar: some View {
+    if #available(iOS 26, macOS 26, *) {
+      GlassEffectContainer(spacing: 12) {
+        headerBarContent
+          .padding(.horizontal, 12)
+          .padding(.vertical, 10)
+          .appPanelSurface()
+      }
+    } else {
+      headerBarContent
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .appPanelSurface()
+    }
+  }
+
+  private var headerBarContent: some View {
     HStack(spacing: 12) {
       Button {
         generateStep1()
       } label: {
-        Label("Generate (Step 1)", systemImage: "sparkles")
+        Label("生成（Step 1）", systemImage: "sparkles")
       }
+      .appPrimaryActionButtonStyle()
       .disabled(
         isGenerating || document.rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
       )
@@ -44,8 +75,9 @@ struct PlanInputView: View {
       Button {
         generateStep2()
       } label: {
-        Label("Generate (Step 2)", systemImage: "wand.and.stars")
+        Label("生成（Step 2）", systemImage: "wand.and.stars")
       }
+      .appSecondaryActionButtonStyle()
       .disabled(isGenerating || document.outline == nil)
 
       if isGenerating {
@@ -74,53 +106,56 @@ struct PlanInputView: View {
   private var providerStatusView: some View {
     HStack(spacing: 8) {
       if let activeProviderName {
-        Text("Provider: \(activeProviderName)")
+        Text("Provider：\(activeProviderName)")
           .lineLimit(1)
           .truncationMode(.middle)
       } else {
-        Text("No active provider")
+        Text("未激活 Provider")
           .lineLimit(1)
       }
 
       #if os(macOS)
         Button {
-          openSettings()
+          presentedSheetRoute = .providerSettings
         } label: {
           Image(systemName: "gearshape")
         }
-        .buttonStyle(.plain)
-        .help("Provider Settings")
+        .appSecondaryActionButtonStyle()
+        .help("管理 Provider")
       #endif
     }
+    .padding(.horizontal, 10)
+    .padding(.vertical, 6)
     .font(.callout)
     .foregroundStyle(.secondary)
+    .appStatusChipSurface()
   }
 
   private var mainTabs: some View {
     TabView {
       inputTab
-        .tabItem { Text("Input") }
+        .tabItem { Text("输入") }
 
       previewTab
-        .tabItem { Text("Preview") }
+        .tabItem { Text("预览") }
 
       cardsTab
-        .tabItem { Text("Cards") }
+        .tabItem { Text("卡片") }
 
       todosTab
-        .tabItem { Text("Todos") }
+        .tabItem { Text("任务") }
 
       citationsTab
-        .tabItem { Text("Citations") }
+        .tabItem { Text("引用") }
 
       historyTab
-        .tabItem { Text("History") }
+        .tabItem { Text("记录") }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
   var activeProviderName: String? {
-    (try? fetchActiveProvider())?.name
+    activeProviders.first?.name
   }
 
   var selectedCard: Flashcard? {
@@ -133,3 +168,10 @@ struct PlanInputView: View {
     return document.todos.first(where: { $0.id == selectedTodoID })
   }
 }
+
+#if os(macOS)
+  private enum PlanInputSheetRoute: String, Identifiable {
+    case providerSettings
+    var id: String { rawValue }
+  }
+#endif

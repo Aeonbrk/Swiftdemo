@@ -33,7 +33,7 @@
               .textFieldStyle(.roundedBorder)
           }
 
-          LabeledContent("Model") {
+          LabeledContent("模型 (Model)") {
             TextField("", text: $provider.model)
               .textFieldStyle(.roundedBorder)
           }
@@ -71,6 +71,7 @@
               Button("保存") {
                 saveKey()
               }
+              .appPrimaryActionButtonStyle()
               .disabled(newAPIKey.isEmpty)
             }
           }
@@ -85,6 +86,7 @@
           Button(provider.isActive ? "已激活" : "设为激活") {
             setActive()
           }
+          .appSecondaryActionButtonStyle()
           .disabled(provider.isActive)
         }
 
@@ -98,7 +100,7 @@
         }
       }
       .formStyle(.grouped)
-      .padding(12)
+      .padding(UIStyle.panelPadding)
       .navigationTitle(provider.name)
       .onChange(of: provider.id) { _, _ in
         isExtraHeadersExpanded = false

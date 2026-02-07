@@ -26,12 +26,5 @@ struct DemoApp: App {
       ContentView()
     }
     .modelContainer(modelContainer)
-
-    #if os(macOS)
-      Settings {
-        SettingsView()
-      }
-      .modelContainer(modelContainer)
-    #endif
   }
 }

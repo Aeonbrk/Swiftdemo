@@ -4,7 +4,7 @@ import SwiftUI
 extension PlanInputView {
   var inputTab: some View {
     VStack(alignment: .leading, spacing: 12) {
-      TextField("Title", text: $document.title)
+      TextField("标题", text: $document.title)
         .textFieldStyle(.roundedBorder)
         .font(.title3)
 
@@ -21,7 +21,7 @@ extension PlanInputView {
         if let outline = document.outline, outline.planMarkdown.isEmpty == false {
           previewText(for: outline.planMarkdown)
         } else {
-          ContentUnavailableView("No preview yet", systemImage: "doc.text.magnifyingglass")
+          ContentUnavailableView("暂无预览", systemImage: "doc.text.magnifyingglass")
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -84,14 +84,16 @@ extension PlanInputView {
       Button {
         createFlashcard()
       } label: {
-        Label("New", systemImage: "plus")
+        Label("新建", systemImage: "plus")
       }
+      .appSecondaryActionButtonStyle()
 
       Button(role: .destructive) {
         deleteSelectedFlashcard()
       } label: {
-        Label("Delete", systemImage: "trash")
+        Label("删除", systemImage: "trash")
       }
+      .appSecondaryActionButtonStyle()
       .disabled(selectedCard == nil)
 
       Spacer()
@@ -99,15 +101,17 @@ extension PlanInputView {
       Button {
         exportFlashcardsTSV()
       } label: {
-        Label("Export TSV", systemImage: "square.and.arrow.up")
+        Label("导出 TSV", systemImage: "square.and.arrow.up")
       }
+      .appSecondaryActionButtonStyle()
       .disabled(document.flashcards.isEmpty)
 
       Button {
         exportFlashcardsCSV()
       } label: {
-        Label("Export CSV", systemImage: "square.and.arrow.up")
+        Label("导出 CSV", systemImage: "square.and.arrow.up")
       }
+      .appSecondaryActionButtonStyle()
       .disabled(document.flashcards.isEmpty)
     }
   }
@@ -127,9 +131,9 @@ extension PlanInputView {
       if let selectedCard {
         cardEditor(for: selectedCard)
       } else if document.flashcards.isEmpty {
-        ContentUnavailableView("No cards yet", systemImage: "rectangle.stack.badge.plus")
+        ContentUnavailableView("暂无卡片", systemImage: "rectangle.stack.badge.plus")
       } else {
-        ContentUnavailableView("Select a card", systemImage: "rectangle.stack")
+        ContentUnavailableView("请选择卡片", systemImage: "rectangle.stack")
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -140,14 +144,16 @@ extension PlanInputView {
       Button {
         createTodo()
       } label: {
-        Label("New", systemImage: "plus")
+        Label("新建", systemImage: "plus")
       }
+      .appSecondaryActionButtonStyle()
 
       Button(role: .destructive) {
         deleteSelectedTodo()
       } label: {
-        Label("Delete", systemImage: "trash")
+        Label("删除", systemImage: "trash")
       }
+      .appSecondaryActionButtonStyle()
       .disabled(selectedTodo == nil)
 
       Spacer()
@@ -155,8 +161,9 @@ extension PlanInputView {
       Button {
         exportTodosCSV()
       } label: {
-        Label("Export CSV", systemImage: "square.and.arrow.up")
+        Label("导出 CSV", systemImage: "square.and.arrow.up")
       }
+      .appSecondaryActionButtonStyle()
       .disabled(document.todos.isEmpty)
     }
   }
@@ -176,9 +183,9 @@ extension PlanInputView {
       if let selectedTodo {
         todoEditor(for: selectedTodo)
       } else if document.todos.isEmpty {
-        ContentUnavailableView("No todos yet", systemImage: "checklist")
+        ContentUnavailableView("暂无任务", systemImage: "checklist")
       } else {
-        ContentUnavailableView("Select a todo", systemImage: "checkmark.circle")
+        ContentUnavailableView("请选择任务", systemImage: "checkmark.circle")
       }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -199,7 +206,7 @@ extension PlanInputView {
 
   private func cardRow(_ card: Flashcard) -> some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text(card.front.isEmpty ? "(No front)" : card.front)
+      Text(card.front.isEmpty ? "(正面为空)" : card.front)
         .lineLimit(2)
       HStack(spacing: 8) {
         Text(card.masteryRaw)
@@ -218,7 +225,7 @@ extension PlanInputView {
 
   private func todoRow(_ todo: TodoItem) -> some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text(todo.title.isEmpty ? "(No title)" : todo.title)
+      Text(todo.title.isEmpty ? "(无标题)" : todo.title)
         .lineLimit(2)
       HStack(spacing: 8) {
         Text(todo.statusRaw)

@@ -3,7 +3,7 @@
   import SwiftData
   import Core
 
-  struct SettingsView: View {
+  struct ProviderSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \LLMProvider.updatedAt, order: .reverse) private var providers: [LLMProvider]
 
@@ -35,9 +35,11 @@
             Button("导入默认模板") {
               installDefaultProviders()
             }
+            .appPrimaryActionButtonStyle()
             Button("添加自定义 Provider") {
               addCustomProvider()
             }
+            .appSecondaryActionButtonStyle()
           }
           .padding(16)
         } else if let provider = selectedProvider {
@@ -52,6 +54,7 @@
         }
       }
       .frame(minWidth: 760, minHeight: 520)
+      .navigationTitle("Provider 设置")
       .onAppear {
         if selectedProviderID == nil {
           selectedProviderID = providers.first?.id
@@ -130,6 +133,7 @@
           } label: {
             Label("导入默认", systemImage: "sparkles")
           }
+          .appPrimaryActionButtonStyle()
           .help("导入默认 Provider 模板")
 
           Menu {
@@ -149,6 +153,7 @@
           } label: {
             Label("添加", systemImage: "plus")
           }
+          .appSecondaryActionButtonStyle()
           .help("添加 Provider")
 
           Button(role: .destructive) {
@@ -156,6 +161,7 @@
           } label: {
             Label("删除", systemImage: "trash")
           }
+          .appSecondaryActionButtonStyle()
           .help("删除选中的 Provider")
           .disabled(selectedProviderID == nil)
         }
@@ -164,7 +170,7 @@
 
   }
 
-  extension SettingsView {
+  extension ProviderSettingsView {
     private func addProvider(from preset: LLMProviderPreset) {
       let provider = makeProvider(
         name: preset.name,

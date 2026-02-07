@@ -133,7 +133,7 @@ extension PlanInputView {
         finishGenerationSuccess(
           promptVersion: Step1Pipeline.promptVersion,
           provider: context.providerSnapshot,
-          successMessage: "Generated Step 1 output."
+          successMessage: "已生成 Step 1 输出。"
         )
       }
     }
@@ -159,7 +159,7 @@ extension PlanInputView {
         finishGenerationSuccess(
           promptVersion: Step2Pipeline.promptVersion,
           provider: context.providerSnapshot,
-          successMessage: "Generated Step 2 output."
+          successMessage: "已生成 Step 2 输出。"
         )
       }
     }
@@ -306,7 +306,7 @@ extension PlanInputView {
       failGeneration(
         promptVersion: Step2Pipeline.promptVersion,
         provider: nil,
-        message: "Run Step 1 first."
+        message: "请先运行 Step 1。"
       )
       return nil
     }
@@ -318,7 +318,7 @@ extension PlanInputView {
         failGeneration(
           promptVersion: promptVersion,
           provider: nil,
-          message: "No active provider. Set one in Settings."
+          message: "没有激活的 Provider，请先在 Provider 设置中配置。"
         )
         return nil
       }
@@ -327,7 +327,7 @@ extension PlanInputView {
       failGeneration(
         promptVersion: promptVersion,
         provider: nil,
-        message: "Failed to load provider: \(error)"
+        message: "加载 Provider 失败：\(error)"
       )
       return nil
     }
@@ -337,7 +337,7 @@ extension PlanInputView {
       failGeneration(
         promptVersion: promptVersion,
         provider: provider,
-        message: "Invalid baseURL: \(provider.baseURL)"
+        message: "Base URL 无效：\(provider.baseURL)"
       )
       return nil
     }
@@ -352,21 +352,21 @@ extension PlanInputView {
       ) ?? ""
 
       guard apiKey.isEmpty == false else {
-        failGeneration(
-          promptVersion: promptVersion,
-          provider: provider,
-          message: "Missing API key for provider '\(provider.name)'. Set it in Settings."
-        )
+          failGeneration(
+            promptVersion: promptVersion,
+            provider: provider,
+            message: "Provider '\(provider.name)' 缺少 API Key，请先在 Provider 设置中保存。"
+          )
         return nil
       }
 
       return apiKey
     } catch {
-      failGeneration(
-        promptVersion: promptVersion,
-        provider: provider,
-        message: "Failed to read API key: \(error)"
-      )
+        failGeneration(
+          promptVersion: promptVersion,
+          provider: provider,
+          message: "读取 API Key 失败：\(error)"
+        )
       return nil
     }
   }
@@ -378,7 +378,7 @@ extension PlanInputView {
       failGeneration(
         promptVersion: promptVersion,
         provider: provider,
-        message: "Invalid extraHeadersJSON: \(error)"
+        message: "extraHeadersJSON 格式错误：\(error)"
       )
       return nil
     }

@@ -29,19 +29,20 @@ struct ContentView: View {
         }
         .onDelete(perform: deleteDocuments)
       }
-      .navigationTitle("Plans")
+      .navigationTitle("学习计划")
       .toolbar {
         ToolbarItem(placement: .primaryAction) {
           Button(action: createDocument) {
-            Label("New Plan", systemImage: "plus")
+            Label("新建计划", systemImage: "plus")
           }
+          .appPrimaryActionButtonStyle()
         }
       }
     } detail: {
       if let document = selectedDocument {
         PlanInputView(document: document)
       } else {
-        ContentUnavailableView("Select a plan", systemImage: "doc.text")
+        ContentUnavailableView("请选择一个计划", systemImage: "doc.text")
       }
     }
     .onAppear {
@@ -52,7 +53,7 @@ struct ContentView: View {
   }
 
   private func createDocument() {
-    let document = PlanDocument(title: "New Plan", rawInput: "")
+    let document = PlanDocument(title: "新计划", rawInput: "")
     modelContext.insert(document)
     selectedDocumentID = document.id
   }
