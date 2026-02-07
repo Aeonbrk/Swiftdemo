@@ -123,67 +123,44 @@ extension PlanInputView {
       return
     }
 
-    Task {
-      do {
-        let output = try await runStep1Pipeline(rawInput: rawInput, context: context)
-        await MainActor.run {
-          applyStep1Output(output, to: document, in: modelContext)
-          finishGenerationSuccess(
-            promptVersion: Step1Pipeline.promptVersion,
-            provider: context.providerSnapshot,
-            successMessage: "Generated Step 1 output."
-          )
-        }
-      } catch {
-        await MainActor.run {
-          let message = planInputGenerationErrorMessage(error)
-          failGeneration(
-            promptVersion: Step1Pipeline.promptVersion,
-            provider: context.providerSnapshot,
-            message: message
-          )
-        }
+    executeGenerationTask(
+      promptVersion: Step1Pipeline.promptVersion,
+      provider: context.providerSnapshot
+    ) {
+      let output = try await runStep1Pipeline(rawInput: rawInput, context: context)
+      await MainActor.run {
+        applyStep1Output(output, to: document, in: modelContext)
+        finishGenerationSuccess(
+          promptVersion: Step1Pipeline.promptVersion,
+          provider: context.providerSnapshot,
+          successMessage: "Generated Step 1 output."
+        )
       }
     }
   }
   func generateStep2() {
     beginGeneration()
 
-    guard let outline = document.outline else {
-      failGeneration(
-        promptVersion: Step2Pipeline.promptVersion,
-        provider: nil,
-        message: "Run Step 1 first."
-      )
-      return
-    }
+    guard let outline = requireStep2Outline() else { return }
 
     guard let context = prepareRequestContext(promptVersion: Step2Pipeline.promptVersion) else {
       return
     }
 
-    Task {
-      do {
-        let output = try await runStep2Pipeline(outline: outline, context: context)
-        await MainActor.run {
-          let selection = applyStep2Output(output, to: document, in: modelContext)
-          selectedCardID = selection.selectedCardID
-          selectedTodoID = selection.selectedTodoID
-          finishGenerationSuccess(
-            promptVersion: Step2Pipeline.promptVersion,
-            provider: context.providerSnapshot,
-            successMessage: "Generated Step 2 output."
-          )
-        }
-      } catch {
-        await MainActor.run {
-          let message = planInputGenerationErrorMessage(error)
-          failGeneration(
-            promptVersion: Step2Pipeline.promptVersion,
-            provider: context.providerSnapshot,
-            message: message
-          )
-        }
+    executeGenerationTask(
+      promptVersion: Step2Pipeline.promptVersion,
+      provider: context.providerSnapshot
+    ) {
+      let output = try await runStep2Pipeline(outline: outline, context: context)
+      await MainActor.run {
+        let selection = applyStep2Output(output, to: document, in: modelContext)
+        selectedCardID = selection.selectedCardID
+        selectedTodoID = selection.selectedTodoID
+        finishGenerationSuccess(
+          promptVersion: Step2Pipeline.promptVersion,
+          provider: context.providerSnapshot,
+          successMessage: "Generated Step 2 output."
+        )
       }
     }
   }
@@ -225,23 +202,41 @@ extension PlanInputView {
   }
   private func runStep1Pipeline(rawInput: String, context: GenerationRequestContext) async throws
     -> Step1Output {
-    let client = OpenAICompatibleClient(
-      baseURL: context.baseURL,
-      apiKey: context.apiKey,
-      extraHeaders: context.extraHeaders
-    )
+    let client = makeClient(context: context)
     let pipeline = Step1Pipeline(client: client, model: context.providerSnapshot.model)
     return try await pipeline.run(rawInput: rawInput)
   }
   private func runStep2Pipeline(outline: PlanOutline, context: GenerationRequestContext) async throws
     -> Step2Output {
-    let client = OpenAICompatibleClient(
+    let client = makeClient(context: context)
+    let pipeline = Step2Pipeline(client: client, model: context.providerSnapshot.model)
+    return try await pipeline.run(planJSON: outline.planJSON, planMarkdown: outline.planMarkdown)
+  }
+  private func makeClient(context: GenerationRequestContext) -> OpenAICompatibleClient {
+    OpenAICompatibleClient(
       baseURL: context.baseURL,
       apiKey: context.apiKey,
       extraHeaders: context.extraHeaders
     )
-    let pipeline = Step2Pipeline(client: client, model: context.providerSnapshot.model)
-    return try await pipeline.run(planJSON: outline.planJSON, planMarkdown: outline.planMarkdown)
+  }
+  private func executeGenerationTask(
+    promptVersion: String,
+    provider: ProviderSnapshot,
+    action: @escaping () async throws -> Void
+  ) {
+    Task {
+      do {
+        try await action()
+      } catch {
+        await MainActor.run {
+          failGeneration(
+            promptVersion: promptVersion,
+            provider: provider,
+            message: planInputGenerationErrorMessage(error)
+          )
+        }
+      }
+    }
   }
   private func beginGeneration() {
     errorMessage = nil
@@ -305,6 +300,17 @@ extension PlanInputView {
       apiKey: apiKey,
       extraHeaders: extraHeaders
     )
+  }
+  private func requireStep2Outline() -> PlanOutline? {
+    guard let outline = document.outline else {
+      failGeneration(
+        promptVersion: Step2Pipeline.promptVersion,
+        provider: nil,
+        message: "Run Step 1 first."
+      )
+      return nil
+    }
+    return outline
   }
   private func loadProviderSnapshot(promptVersion: String) -> ProviderSnapshot? {
     do {

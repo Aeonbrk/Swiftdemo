@@ -166,83 +166,52 @@
 
   extension SettingsView {
     private func addProvider(from preset: LLMProviderPreset) {
-      let account = "llm-provider-\(UUID().uuidString)"
-      let provider = LLMProvider(
+      let provider = makeProvider(
         name: preset.name,
         baseURL: preset.baseURL,
         model: preset.model,
         extraHeadersJSON: preset.extraHeadersJSON,
-        apiKeyKeychainAccount: account,
         isActive: providers.isEmpty
       )
-      modelContext.insert(provider)
-      selectedProviderID = provider.id
+      insertAndSelectProvider(provider)
     }
 
     private func addCustomProvider() {
-      let account = "llm-provider-\(UUID().uuidString)"
-      let provider = LLMProvider(
+      let provider = makeProvider(
         name: "新 Provider",
         baseURL: "https://api.openai.com/v1",
         model: "gpt-4.1-mini",
         extraHeadersJSON: "{}",
-        apiKeyKeychainAccount: account,
         isActive: providers.isEmpty
       )
-      modelContext.insert(provider)
-      selectedProviderID = provider.id
+      insertAndSelectProvider(provider)
     }
 
     private func installDefaultProviders() {
-      var existing: Set<String> = []
-      for provider in providers {
-        existing.insert(
-          providerKey(name: provider.name, baseURL: provider.baseURL, model: provider.model))
-      }
-
-      var didInsertAny = false
+      var existing = existingProviderKeys()
       let hasActiveProvider = providers.contains(where: { $0.isActive })
-      var shouldActivateFirst = hasActiveProvider == false
-      var firstInsertedID: UUID?
+      let result = insertMissingDefaultProviders(
+        existingKeys: &existing,
+        shouldActivateFirst: hasActiveProvider == false
+      )
 
-      for preset in LLMProviderPreset.all {
-        let key = providerKey(name: preset.name, baseURL: preset.baseURL, model: preset.model)
-        if existing.contains(key) { continue }
-        existing.insert(key)
-
-        let account = "llm-provider-\(UUID().uuidString)"
-        let provider = LLMProvider(
-          name: preset.name,
-          baseURL: preset.baseURL,
-          model: preset.model,
-          extraHeadersJSON: preset.extraHeadersJSON,
-          apiKeyKeychainAccount: account,
-          isActive: shouldActivateFirst
-        )
-        shouldActivateFirst = false
-        modelContext.insert(provider)
-        if firstInsertedID == nil { firstInsertedID = provider.id }
-        didInsertAny = true
-      }
-
-      if didInsertAny {
+      if result.didInsertAny {
         message = "已导入默认 Provider 模板"
-        if let firstInsertedID {
+        if let firstInsertedID = result.firstInsertedID {
           selectedProviderID = firstInsertedID
         } else if selectedProviderID == nil {
           selectedProviderID = providers.first?.id
         }
-      } else {
-        if hasActiveProvider == false, let candidateID = selectedProviderID ?? providers.first?.id {
-          for item in providers {
-            item.isActive = item.id == candidateID
-            item.updatedAt = .now
-          }
-          message = "默认 Provider 已存在，已设为激活。"
-        } else {
-          message = "默认 Provider 已存在"
-        }
+        return
       }
+
+      if hasActiveProvider == false, let candidateID = selectedProviderID ?? providers.first?.id {
+        setActiveProviderID(candidateID)
+        message = "默认 Provider 已存在，已设为激活。"
+        return
+      }
+
+      message = "默认 Provider 已存在"
     }
 
     private func providerKey(name: String, baseURL: String, model: String) -> String {
@@ -259,10 +228,7 @@
     }
 
     private func setActiveProvider(_ provider: LLMProvider) {
-      for item in providers {
-        item.isActive = item.id == provider.id
-        item.updatedAt = .now
-      }
+      setActiveProviderID(provider.id)
       message = "已设为激活。"
     }
 
@@ -277,10 +243,7 @@
       )
 
       if wasActive {
-        for item in providers where item.id != provider.id {
-          item.isActive = item.id == replacement?.id
-          item.updatedAt = .now
-        }
+        setActiveProviderID(replacement?.id, excluding: provider.id)
       }
 
       if selectedProviderID == provider.id {
@@ -288,6 +251,67 @@
       }
 
       message = "已删除 Provider"
+    }
+    private func makeProvider(
+      name: String,
+      baseURL: String,
+      model: String,
+      extraHeadersJSON: String,
+      isActive: Bool
+    ) -> LLMProvider {
+      LLMProvider(
+        name: name,
+        baseURL: baseURL,
+        model: model,
+        extraHeadersJSON: extraHeadersJSON,
+        apiKeyKeychainAccount: "llm-provider-\(UUID().uuidString)",
+        isActive: isActive
+      )
+    }
+    private func insertAndSelectProvider(_ provider: LLMProvider) {
+      modelContext.insert(provider)
+      selectedProviderID = provider.id
+    }
+    private func existingProviderKeys() -> Set<String> {
+      var keys: Set<String> = []
+      for provider in providers {
+        keys.insert(providerKey(name: provider.name, baseURL: provider.baseURL, model: provider.model))
+      }
+      return keys
+    }
+    private func insertMissingDefaultProviders(
+      existingKeys: inout Set<String>,
+      shouldActivateFirst: Bool
+    ) -> (didInsertAny: Bool, firstInsertedID: UUID?) {
+      var didInsertAny = false
+      var firstInsertedID: UUID?
+      var shouldActivateNext = shouldActivateFirst
+
+      for preset in LLMProviderPreset.all {
+        let key = providerKey(name: preset.name, baseURL: preset.baseURL, model: preset.model)
+        guard existingKeys.contains(key) == false else { continue }
+        existingKeys.insert(key)
+
+        let provider = makeProvider(
+          name: preset.name,
+          baseURL: preset.baseURL,
+          model: preset.model,
+          extraHeadersJSON: preset.extraHeadersJSON,
+          isActive: shouldActivateNext
+        )
+        shouldActivateNext = false
+        modelContext.insert(provider)
+        if firstInsertedID == nil { firstInsertedID = provider.id }
+        didInsertAny = true
+      }
+
+      return (didInsertAny, firstInsertedID)
+    }
+    private func setActiveProviderID(_ id: UUID?, excluding excludedID: UUID? = nil) {
+      for item in providers where item.id != excludedID {
+        item.isActive = item.id == id
+        item.updatedAt = .now
+      }
     }
   }
 
