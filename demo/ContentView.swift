@@ -57,13 +57,16 @@ struct ContentView: View {
       }
       .searchable(text: $searchText, prompt: "搜索计划标题")
       .navigationTitle("学习计划")
-      .toolbar {
-        ToolbarItem(placement: .primaryAction) {
+      .safeAreaInset(edge: .bottom) {
+        HStack {
           Button(action: createDocument) {
             Label("新建计划", systemImage: "plus")
           }
-          .appPrimaryActionButtonStyle()
+          .appSecondaryActionButtonStyle()
+          Spacer(minLength: UIStyle.compactSpacing)
         }
+        .padding(.horizontal, UIStyle.panelInnerPadding)
+        .padding(.top, 6)
       }
     } detail: {
       if let document = selectedDocument {

@@ -26,7 +26,7 @@ struct PlanWorkspaceSidebarView: View {
     .listStyle(.sidebar)
     .scrollContentBackground(.hidden)
     .padding(.vertical, 4)
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .frame(maxHeight: .infinity)
     .appPanelGlass()
     .accessibilityIdentifier("plan_workspace_sidebar")
   }

@@ -140,7 +140,24 @@ extension PlanInputView {
     .appChipGlass()
   }
 
+  @ViewBuilder
   private var providerStatusView: some View {
+    #if os(macOS)
+      Button {
+        isProviderInspectorVisible = true
+      } label: {
+        providerStatusChipContent
+      }
+      .buttonStyle(.plain)
+      .appChipGlass(interactive: true)
+      .help("点击打开 Provider 设置")
+    #else
+      providerStatusChipContent
+        .appChipGlass()
+    #endif
+  }
+
+  private var providerStatusChipContent: some View {
     HStack(spacing: 8) {
       Image(systemName: activeProviderName == nil ? "exclamationmark.shield" : "checkmark.shield")
         .foregroundStyle(activeProviderName == nil ? UIStyle.warningStatusColor : UIStyle.positiveStatusColor)
@@ -153,13 +170,17 @@ extension PlanInputView {
         Text("未激活 Provider")
           .lineLimit(1)
       }
+
+      #if os(macOS)
+        Image(systemName: "slider.horizontal.3")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      #endif
     }
     .padding(.horizontal, 10)
     .padding(.vertical, 6)
     .font(.callout)
     .foregroundStyle(.secondary)
-    .appChipGlass()
-    .help("通过窗口右上角的面板按钮管理 Provider")
   }
 
   private var mainTabs: some View {
@@ -243,6 +264,11 @@ extension PlanInputView {
     private var macWorkspaceContent: some View {
       HStack(spacing: UIStyle.workspaceColumnSpacing) {
         PlanWorkspaceSidebarView(selectedRoute: $selectedRoute)
+          .frame(
+            minWidth: UIStyle.workspaceSidebarMinWidth,
+            idealWidth: UIStyle.workspaceSidebarIdealWidth,
+            maxWidth: UIStyle.workspaceSidebarIdealWidth + 16
+          )
 
         PlanWorkspaceDetailView(
           selectedRoute: selectedRoute,
