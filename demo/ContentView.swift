@@ -67,7 +67,8 @@ struct ContentView: View {
               .font(.headline.weight(.semibold))
               .frame(width: UIStyle.floatingAddButtonSize, height: UIStyle.floatingAddButtonSize)
           }
-          .appPrimaryActionButtonStyle()
+          .buttonStyle(.plain)
+          .appChipGlass(interactive: true)
           .scaleEffect(isCreateButtonHovered ? 1.05 : 1.0)
           .animation(.easeOut(duration: 0.15), value: isCreateButtonHovered)
           .help("新建计划")

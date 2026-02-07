@@ -280,7 +280,6 @@ extension PlanInputView {
           historyView: AnyView(historyTab)
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .appPanelGlass()
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

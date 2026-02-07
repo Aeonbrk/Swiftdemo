@@ -3,30 +3,37 @@ import SwiftUI
 
 extension PlanInputView {
   var inputTab: some View {
-    VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
-      VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
-        Text("计划标题")
-          .font(.caption)
-          .foregroundStyle(.secondary)
+    ScrollView {
+      VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
+        VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+          Text("计划标题")
+            .font(.caption)
+            .foregroundStyle(.secondary)
 
-        TextField("例如：30 天掌握 Swift 并完成项目", text: $document.title)
-          .textFieldStyle(.plain)
-          .appInputSurface()
-          .font(.title3)
+          TextField("例如：30 天掌握 Swift 并完成项目", text: $document.title)
+            .textFieldStyle(.plain)
+            .appInputSurface()
+            .font(.title3)
+        }
+        .padding(UIStyle.panelInnerPadding)
+        .appPanelGlass()
+
+        VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+          Text("原始输入")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+          TextEditor(text: $document.rawInput)
+            .font(.system(.body, design: .monospaced))
+            .appInputSurface()
+            .frame(minHeight: 360)
+        }
+        .padding(UIStyle.panelInnerPadding)
+        .appPanelGlass()
       }
-
-      VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
-        Text("原始输入")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
-        TextEditor(text: $document.rawInput)
-          .font(.system(.body, design: .monospaced))
-          .appInputSurface()
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-      }
+      .padding(UIStyle.panelPadding)
+      .frame(maxWidth: .infinity, alignment: .leading)
     }
-    .padding(UIStyle.panelPadding)
   }
 
   var previewTab: some View {

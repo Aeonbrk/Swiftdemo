@@ -26,7 +26,7 @@ enum UIStyle {
 
   static let sidebarRowMinHeight: CGFloat = 38
   static let listRowVerticalPadding: CGFloat = 6
-  static let floatingAddButtonSize: CGFloat = 36
+  static let floatingAddButtonSize: CGFloat = 32
   static let floatingAddButtonBottomPadding: CGFloat = 14
 
   static let positiveStatusColor: Color = .green
