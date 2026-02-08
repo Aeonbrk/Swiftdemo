@@ -153,12 +153,12 @@ extension PlanInputView {
       }
       .focused($isProviderToggleFocused)
       .buttonStyle(.plain)
-      .appChipGlass(interactive: true)
+      .appSurface(.panel, level: .regular, interactive: true, borderTone: .regular)
       .appFocusRing(isFocused: isProviderToggleFocused)
       .help(isProviderInspectorVisible ? "点击关闭 Provider 面板" : "点击打开 Provider 面板")
     #else
       providerStatusChipContent
-        .appChipGlass()
+        .appSurface(.panel, level: .regular, borderTone: .regular)
     #endif
   }
 

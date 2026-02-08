@@ -51,7 +51,20 @@ extension View {
       .padding(.vertical, 8)
       .background {
         RoundedRectangle(cornerRadius: UIStyle.cornerRadius, style: .continuous)
-          .fill(Color.black.opacity(UIStyle.fillOpacity(for: tone)))
+          .fill(
+            LinearGradient(
+              colors: [
+                Color.white.opacity(0.04),
+                Color.black.opacity(0.16)
+              ],
+              startPoint: .topLeading,
+              endPoint: .bottomTrailing
+            )
+          )
+          .overlay {
+            RoundedRectangle(cornerRadius: UIStyle.cornerRadius, style: .continuous)
+              .fill(Color.black.opacity(UIStyle.fillOpacity(for: tone)))
+          }
       }
       .appSurface(.field, level: .subtle, borderTone: .strong)
   }
@@ -94,14 +107,7 @@ extension View {
 
   func appInputSurface(transparent: Bool = true) -> some View {
     let tone: UIStyle.SurfaceTone = transparent ? .row : .field
-    return self
-      .padding(.horizontal, UIStyle.panelInnerPadding)
-      .padding(.vertical, 8)
-      .background {
-        RoundedRectangle(cornerRadius: UIStyle.cornerRadius, style: .continuous)
-          .fill(Color.black.opacity(UIStyle.fillOpacity(for: tone)))
-      }
-      .appSurface(.field, level: .subtle, borderTone: .strong)
+    return self.appFieldSurface(tone)
   }
 
   @ViewBuilder

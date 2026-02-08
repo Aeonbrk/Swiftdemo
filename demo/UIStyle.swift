@@ -75,17 +75,17 @@ enum UIStyle {
 
   static func fillOpacity(for tone: SurfaceTone) -> CGFloat {
     switch tone {
-    case .shell: 0.30
-    case .panel: 0.22
-    case .row: 0.18
-    case .field: 0.28
+    case .shell: 0.16
+    case .panel: 0.11
+    case .row: 0.07
+    case .field: 0.10
     }
   }
 
   static func borderOpacity(for tone: BorderTone) -> CGFloat {
     switch tone {
-    case .subtle: 0.10
-    case .regular: 0.16
+    case .subtle: 0.12
+    case .regular: 0.18
     case .strong: 0.24
     case .focus: 0.95
     }
@@ -93,33 +93,33 @@ enum UIStyle {
 
   private static func shellTintOpacity(for level: GlassLevel) -> CGFloat {
     switch level {
-    case .subtle: 0.10
-    case .regular: 0.13
-    case .strong: 0.16
+    case .subtle: 0.08
+    case .regular: 0.10
+    case .strong: 0.12
     }
   }
 
   private static func panelTintOpacity(for level: GlassLevel) -> CGFloat {
     switch level {
-    case .subtle: 0.08
-    case .regular: 0.11
-    case .strong: 0.14
+    case .subtle: 0.06
+    case .regular: 0.08
+    case .strong: 0.11
     }
   }
 
   private static func rowTintOpacity(for level: GlassLevel) -> CGFloat {
     switch level {
-    case .subtle: 0.07
-    case .regular: 0.09
-    case .strong: 0.12
+    case .subtle: 0.05
+    case .regular: 0.07
+    case .strong: 0.09
     }
   }
 
   private static func fieldTintOpacity(for level: GlassLevel) -> CGFloat {
     switch level {
-    case .subtle: 0.05
-    case .regular: 0.07
-    case .strong: 0.10
+    case .subtle: 0.04
+    case .regular: 0.05
+    case .strong: 0.08
     }
   }
 }
