@@ -24,11 +24,11 @@ struct PlanWorkspaceSidebarView: View {
         }
       }
     }
-    .listStyle(.sidebar)
+    .listStyle(.plain)
     .scrollContentBackground(.hidden)
+    .background(Color.clear)
     .padding(.vertical, 4)
     .frame(maxHeight: .infinity)
-    .appSidebarSurface()
     .accessibilityIdentifier("plan_workspace_sidebar")
   }
 

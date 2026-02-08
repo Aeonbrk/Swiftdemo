@@ -97,7 +97,6 @@ struct ContentView: View {
       .searchable(text: $searchText, prompt: "搜索计划标题")
       .navigationTitle("学习计划")
       .navigationSplitViewColumnWidth(min: 180, ideal: 210, max: 240)
-      .appSidebarSurface()
     } detail: {
       if let document = selectedDocument {
         PlanInputView(document: document)
