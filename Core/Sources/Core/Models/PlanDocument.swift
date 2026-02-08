@@ -8,8 +8,8 @@ public final class PlanDocument {
 
   public var title: String
   public var rawInput: String
-  public var syncOwnershipPolicyRaw: String
-  public var automationPermissionPolicyRaw: String
+  public var syncOwnershipPolicyRaw: String = SyncOwnershipPolicy.localWins.rawValue
+  public var automationPermissionPolicyRaw: String = AutomationPermissionPolicy.assistive.rawValue
 
   public var createdAt: Date
   public var updatedAt: Date
