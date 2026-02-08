@@ -3,6 +3,13 @@
   import Foundation
   import SwiftData
 
+  private struct ConnectivityProbeInput {
+    let providerID: UUID
+    let baseURL: URL
+    let apiKey: String
+    let extraHeaders: [String: String]
+  }
+
   extension ProviderSettingsView {
     func addProvider(from preset: LLMProviderPreset) {
       let provider = makeProvider(
@@ -89,6 +96,29 @@
       message = "已删除 Provider"
     }
 
+    func runConnectivityDiagnostics(for provider: LLMProvider) {
+      guard let input = makeConnectivityProbeInput(from: provider) else { return }
+      diagnosingProviderID = input.providerID
+
+      Task {
+        let probe = ProviderConnectivityProbe()
+        let result = await probe.probe(
+          baseURL: input.baseURL,
+          apiKey: input.apiKey,
+          extraHeaders: input.extraHeaders
+        )
+
+        await MainActor.run {
+          diagnosticsByProviderID[input.providerID] = ProviderDiagnosticsSnapshot(
+            result: result,
+            checkedAt: .now
+          )
+          diagnosingProviderID = nil
+          message = "已完成连接诊断。"
+        }
+      }
+    }
+
     func makeProvider(
       name: String,
       baseURL: String,
@@ -161,6 +191,72 @@
 
     func providerKey(name: String, baseURL: String, model: String) -> String {
       "\(name.lowercased())|\(baseURL.lowercased())|\(model.lowercased())"
+    }
+
+    private func recordConfigurationDiagnostics(providerID: UUID, message: String) {
+      diagnosticsByProviderID[providerID] = ProviderDiagnosticsSnapshot(
+        result: ProviderConnectivityResult(
+          status: .invalidConfiguration,
+          latencyMilliseconds: nil,
+          httpStatusCode: nil,
+          message: message
+        ),
+        checkedAt: .now
+      )
+      diagnosingProviderID = nil
+      self.message = message
+    }
+
+    private func makeConnectivityProbeInput(from provider: LLMProvider) -> ConnectivityProbeInput? {
+      let providerID = provider.id
+
+      guard let baseURL = URL(string: provider.baseURL) else {
+        recordConfigurationDiagnostics(
+          providerID: providerID,
+          message: "Base URL 无效，请检查格式。"
+        )
+        return nil
+      }
+
+      let apiKey: String
+      do {
+        apiKey = try KeychainStore.getPassword(
+          service: KeychainStore.llmService,
+          account: provider.apiKeyKeychainAccount
+        ) ?? ""
+      } catch {
+        recordConfigurationDiagnostics(
+          providerID: providerID,
+          message: "读取 API Key 失败：\(error)"
+        )
+        return nil
+      }
+
+      guard apiKey.isEmpty == false else {
+        recordConfigurationDiagnostics(
+          providerID: providerID,
+          message: "Provider '\(provider.name)' 缺少 API Key，请先保存。"
+        )
+        return nil
+      }
+
+      let extraHeaders: [String: String]
+      do {
+        extraHeaders = try parseProviderExtraHeadersJSON(provider.extraHeadersJSON)
+      } catch {
+        recordConfigurationDiagnostics(
+          providerID: providerID,
+          message: "额外 Header JSON 格式错误：\(error)"
+        )
+        return nil
+      }
+
+      return ConnectivityProbeInput(
+        providerID: providerID,
+        baseURL: baseURL,
+        apiKey: apiKey,
+        extraHeaders: extraHeaders
+      )
     }
   }
 #endif

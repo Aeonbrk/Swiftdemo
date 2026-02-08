@@ -3,6 +3,11 @@
   import SwiftData
   import SwiftUI
 
+  struct ProviderDiagnosticsSnapshot {
+    let result: ProviderConnectivityResult
+    let checkedAt: Date
+  }
+
   struct ProviderSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) var modelContext
@@ -16,6 +21,8 @@
     @State var message: String?
     @State var providerIDPendingDelete: UUID?
     @FocusState var focusedProviderID: UUID?
+    @State var diagnosingProviderID: UUID?
+    @State var diagnosticsByProviderID: [UUID: ProviderDiagnosticsSnapshot] = [:]
 
     var selectedProvider: LLMProvider? {
       guard let selectedProviderID else { return nil }

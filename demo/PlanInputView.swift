@@ -2,6 +2,16 @@ import Core
 import SwiftData
 import SwiftUI
 
+enum PlanInputMainTab: Hashable {
+  case input
+  case preview
+  case cards
+  case todos
+  case execution
+  case citations
+  case history
+}
+
 struct PlanInputView: View {
   @Environment(\.modelContext) var modelContext
   @Query(filter: #Predicate<LLMProvider> { $0.isActive == true }, sort: \LLMProvider.updatedAt, order: .reverse)
@@ -14,10 +24,15 @@ struct PlanInputView: View {
   @State var errorMessage: String?
   @State var selectedCardID: UUID?
   @State var selectedTodoID: UUID?
+  @State var selectedMainTab: PlanInputMainTab = .input
+  @State var executionFilter: ExecutionDashboardFilter = .today
+  @State var step2MergeMode: Step2MergeMode = .replace
+  @State var handledRecommendationTodoIDs: Set<UUID> = []
+  @State var pendingSyncReviewsByTodoID: [UUID: PendingSyncReview] = [:]
   @State var isShowingCardBack = false
 
   #if os(macOS)
-    @State private var selectedRoute: PlanWorkspaceRoute = .input
+    @State var selectedRoute: PlanWorkspaceRoute = .input
     @State private var isProviderInspectorVisible = false
     @FocusState private var isProviderToggleFocused: Bool
   #endif
@@ -93,6 +108,20 @@ extension PlanInputView {
         generateStep2()
       } label: {
         Label("生成任务（Step 2）", systemImage: "wand.and.stars")
+      }
+      .appSecondaryActionButtonStyle()
+      .disabled(isGenerating || document.outline == nil)
+
+      Menu {
+        Picker("Step2 写入模式", selection: $step2MergeMode) {
+          Text("覆盖写入").tag(Step2MergeMode.replace)
+          Text("合并追加").tag(Step2MergeMode.merge)
+        }
+      } label: {
+        Label(
+          step2MergeMode == .replace ? "覆盖写入" : "合并追加",
+          systemImage: "arrow.triangle.branch"
+        )
       }
       .appSecondaryActionButtonStyle()
       .disabled(isGenerating || document.outline == nil)
@@ -192,24 +221,34 @@ extension PlanInputView {
   }
 
   private var mainTabs: some View {
-    TabView {
+    TabView(selection: $selectedMainTab) {
       inputTab
         .tabItem { Label("输入", systemImage: "square.and.pencil") }
+        .tag(PlanInputMainTab.input)
 
       previewTab
         .tabItem { Label("预览", systemImage: "doc.text.magnifyingglass") }
+        .tag(PlanInputMainTab.preview)
 
       cardsTab
         .tabItem { Label("卡片", systemImage: "rectangle.stack") }
+        .tag(PlanInputMainTab.cards)
 
       todosTab
         .tabItem { Label("任务", systemImage: "checklist") }
+        .tag(PlanInputMainTab.todos)
+
+      executionTab
+        .tabItem { Label("执行", systemImage: "bolt.horizontal.circle") }
+        .tag(PlanInputMainTab.execution)
 
       citationsTab
         .tabItem { Label("引用", systemImage: "link") }
+        .tag(PlanInputMainTab.citations)
 
       historyTab
         .tabItem { Label("记录", systemImage: "clock.arrow.circlepath") }
+        .tag(PlanInputMainTab.history)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -284,6 +323,7 @@ extension PlanInputView {
           previewView: AnyView(previewTab),
           cardsView: AnyView(cardsTab),
           todosView: AnyView(todosTab),
+          executionView: AnyView(executionTab),
           citationsView: AnyView(citationsTab),
           historyView: AnyView(historyTab)
         )

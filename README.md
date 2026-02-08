@@ -14,6 +14,7 @@
 - 导出：
   - Flashcards → TSV / CSV
   - Todos → CSV
+- Todo 语义字段：`status`、`priority`、`completedAt`（编辑器使用受控选择，不再依赖自由文本状态）。
 - 核心模块单元测试（Core package）。
 
 ### 未实现

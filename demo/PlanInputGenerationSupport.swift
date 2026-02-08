@@ -103,35 +103,97 @@ func applyStep1Output(
 func applyStep2Output(
   _ output: Step2Output,
   to document: PlanDocument,
-  in modelContext: ModelContext
+  in modelContext: ModelContext,
+  mergeMode: Step2MergeMode = .replace
 ) -> (selectedCardID: UUID?, selectedTodoID: UUID?) {
-  let oldCards = document.flashcards
-  document.flashcards.removeAll()
-  for card in oldCards { modelContext.delete(card) }
+  switch mergeMode {
+  case .replace:
+    let oldCards = document.flashcards
+    document.flashcards.removeAll()
+    for card in oldCards { modelContext.delete(card) }
 
-  let oldTodos = document.todos
-  document.todos.removeAll()
-  for todo in oldTodos { modelContext.delete(todo) }
+    let oldTodos = document.todos
+    document.todos.removeAll()
+    for todo in oldTodos { modelContext.delete(todo) }
 
-  for item in output.flashcards {
-    let card = Flashcard(front: item.front, back: item.back, tagsRaw: item.tagsRaw)
-    card.document = document
-    modelContext.insert(card)
-  }
+    for item in output.flashcards {
+      insertFlashcard(item, to: document, in: modelContext)
+    }
 
-  for item in output.todos {
-    let todo = TodoItem(
-      title: item.title,
-      detail: item.detail,
-      estimatedMinutes: item.estimatedMinutes,
-      statusRaw: "todo",
-      frequencyRaw: item.frequencyRaw
+    for item in output.todos {
+      insertTodo(item, to: document, in: modelContext)
+    }
+  case .merge:
+    let existingProjection = currentStep2Projection(for: document)
+    let mergedOutput = Step2OutputMerger.merge(
+      existing: existingProjection,
+      incoming: output,
+      mode: .merge
     )
-    todo.document = document
-    modelContext.insert(todo)
+
+    for item in mergedOutput.flashcards.dropFirst(existingProjection.flashcards.count) {
+      insertFlashcard(item, to: document, in: modelContext)
+    }
+
+    for item in mergedOutput.todos.dropFirst(existingProjection.todos.count) {
+      insertTodo(item, to: document, in: modelContext)
+    }
   }
 
   return (document.flashcards.first?.id, document.todos.first?.id)
+}
+
+private func currentStep2Projection(for document: PlanDocument) -> Step2Output {
+  let flashcards = document.flashcards.map {
+    Step2Output.Flashcard(front: $0.front, back: $0.back, tagsRaw: $0.tagsRaw)
+  }
+  let todos = document.todos.map {
+    Step2Output.Todo(
+      title: $0.title,
+      detail: $0.detail,
+      estimatedMinutes: $0.estimatedMinutes,
+      frequencyRaw: $0.frequencyRaw,
+      statusRaw: $0.statusRaw,
+      priorityRaw: $0.priorityRaw,
+      scheduledAtISO8601: formatISO8601Date($0.scheduledAt),
+      dueAtISO8601: formatISO8601Date($0.dueAt)
+    )
+  }
+
+  return Step2Output(flashcards: flashcards, todos: todos)
+}
+
+private func insertFlashcard(
+  _ item: Step2Output.Flashcard,
+  to document: PlanDocument,
+  in modelContext: ModelContext
+) {
+  let card = Flashcard(front: item.front, back: item.back, tagsRaw: item.tagsRaw)
+  card.document = document
+  modelContext.insert(card)
+}
+
+private func insertTodo(
+  _ item: Step2Output.Todo,
+  to document: PlanDocument,
+  in modelContext: ModelContext
+) {
+  let statusRaw = normalizedTodoStatusRaw(item.statusRaw)
+  let priorityRaw = normalizedTodoPriorityRaw(item.priorityRaw)
+  let frequencyRaw = normalizedFrequencyRaw(item.frequencyRaw)
+
+  let todo = TodoItem(
+    title: item.title,
+    detail: item.detail,
+    estimatedMinutes: item.estimatedMinutes,
+    statusRaw: statusRaw,
+    priorityRaw: priorityRaw,
+    frequencyRaw: frequencyRaw,
+    scheduledAt: parseISO8601Date(item.scheduledAtISO8601),
+    dueAt: parseISO8601Date(item.dueAtISO8601)
+  )
+  todo.document = document
+  modelContext.insert(todo)
 }
 
 func appendGenerationRecord(
@@ -167,4 +229,51 @@ private func isSandboxNetworkDenied(_ error: NSError) -> Bool {
   }
 
   return false
+}
+
+private func normalizedTodoStatusRaw(_ raw: String?) -> String {
+  guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+    raw.isEmpty == false else {
+    return TodoStatus.todo.rawValue
+  }
+  return TodoStatus(rawValue: raw)?.rawValue ?? TodoStatus.todo.rawValue
+}
+
+private func normalizedTodoPriorityRaw(_ raw: String?) -> String {
+  guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+    raw.isEmpty == false else {
+    return TodoPriority.medium.rawValue
+  }
+  return TodoPriority(rawValue: raw)?.rawValue ?? TodoPriority.medium.rawValue
+}
+
+private func normalizedFrequencyRaw(_ raw: String) -> String {
+  let normalized = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+  if normalized.isEmpty {
+    return "once"
+  }
+  return normalized
+}
+
+private func parseISO8601Date(_ raw: String?) -> Date? {
+  guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), raw.isEmpty == false else {
+    return nil
+  }
+
+  let formatter = ISO8601DateFormatter()
+  formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+  if let date = formatter.date(from: raw) {
+    return date
+  }
+
+  formatter.formatOptions = [.withInternetDateTime]
+  return formatter.date(from: raw)
+}
+
+private func formatISO8601Date(_ date: Date?) -> String? {
+  guard let date else { return nil }
+
+  let formatter = ISO8601DateFormatter()
+  formatter.formatOptions = [.withInternetDateTime]
+  return formatter.string(from: date)
 }

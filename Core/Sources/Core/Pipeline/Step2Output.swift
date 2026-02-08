@@ -18,12 +18,29 @@ public struct Step2Output: Codable, Equatable {
     public var detail: String
     public var estimatedMinutes: Int?
     public var frequencyRaw: String
+    public var statusRaw: String?
+    public var priorityRaw: String?
+    public var scheduledAtISO8601: String?
+    public var dueAtISO8601: String?
 
-    public init(title: String, detail: String, estimatedMinutes: Int? = nil, frequencyRaw: String) {
+    public init(
+      title: String,
+      detail: String,
+      estimatedMinutes: Int? = nil,
+      frequencyRaw: String,
+      statusRaw: String? = nil,
+      priorityRaw: String? = nil,
+      scheduledAtISO8601: String? = nil,
+      dueAtISO8601: String? = nil
+    ) {
       self.title = title
       self.detail = detail
       self.estimatedMinutes = estimatedMinutes
       self.frequencyRaw = frequencyRaw
+      self.statusRaw = statusRaw
+      self.priorityRaw = priorityRaw
+      self.scheduledAtISO8601 = scheduledAtISO8601
+      self.dueAtISO8601 = dueAtISO8601
     }
   }
 

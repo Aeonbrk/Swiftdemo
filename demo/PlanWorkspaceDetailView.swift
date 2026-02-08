@@ -7,6 +7,7 @@ struct PlanWorkspaceDetailView: View {
   let previewView: AnyView
   let cardsView: AnyView
   let todosView: AnyView
+  let executionView: AnyView
   let citationsView: AnyView
   let historyView: AnyView
 
@@ -21,6 +22,8 @@ struct PlanWorkspaceDetailView: View {
         cardsView
       case .todos:
         todosView
+      case .execution:
+        executionView
       case .citations:
         citationsView
       case .history:

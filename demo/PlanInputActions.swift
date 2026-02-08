@@ -80,7 +80,8 @@ extension PlanInputView {
       title: "",
       detail: "",
       estimatedMinutes: nil,
-      statusRaw: "todo",
+      statusRaw: TodoStatus.todo.rawValue,
+      priorityRaw: TodoPriority.medium.rawValue,
       frequencyRaw: "once"
     )
     todo.document = document
@@ -106,6 +107,12 @@ extension PlanInputView {
     }
     document.updatedAt = .now
   }
+  func setTodoStatus(_ todo: TodoItem, to status: TodoStatus) {
+    todo.status = status
+    todo.completedAt = status == .done ? (todo.completedAt ?? .now) : nil
+    todo.updatedAt = .now
+    document.updatedAt = .now
+  }
   func exportTodosCSV() {
     let sorted = document.todos.sorted(by: { $0.createdAt < $1.createdAt })
     let content = TodosExporter.csv(todos: sorted)
@@ -115,14 +122,21 @@ extension PlanInputView {
       contentType: .commaSeparatedText
     )
   }
+  func exportTodosExtendedCSV() {
+    let sorted = document.todos.sorted(by: { $0.createdAt < $1.createdAt })
+    let content = TodosExporter.csvExtended(todos: sorted)
+    exportTextFile(
+      content: content,
+      suggestedFileName: "\(document.title)-todos-extended.csv",
+      contentType: .commaSeparatedText
+    )
+  }
   func generateStep1() {
     beginGeneration()
-
     let rawInput = document.rawInput
     guard let context = prepareRequestContext(promptVersion: Step1Pipeline.promptVersion) else {
       return
     }
-
     executeGenerationTask(
       promptVersion: Step1Pipeline.promptVersion,
       provider: context.providerSnapshot
@@ -140,20 +154,17 @@ extension PlanInputView {
   }
   func generateStep2() {
     beginGeneration()
-
     guard let outline = requireStep2Outline() else { return }
-
     guard let context = prepareRequestContext(promptVersion: Step2Pipeline.promptVersion) else {
       return
     }
-
     executeGenerationTask(
       promptVersion: Step2Pipeline.promptVersion,
       provider: context.providerSnapshot
     ) {
       let output = try await runStep2Pipeline(outline: outline, context: context)
       await MainActor.run {
-        let selection = applyStep2Output(output, to: document, in: modelContext)
+        let selection = applyStep2Output(output, to: document, in: modelContext, mergeMode: step2MergeMode)
         selectedCardID = selection.selectedCardID
         selectedTodoID = selection.selectedTodoID
         finishGenerationSuccess(

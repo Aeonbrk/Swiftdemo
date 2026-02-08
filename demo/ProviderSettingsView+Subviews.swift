@@ -3,6 +3,34 @@
   import SwiftUI
 
   extension ProviderSettingsView {
+    private static let diagnosticsStatusTitles: [ProviderConnectivityStatus: String] = [
+      .healthy: "连接正常",
+      .invalidConfiguration: "配置错误",
+      .unauthorized: "鉴权失败",
+      .forbidden: "权限受限",
+      .rateLimited: "触发限流",
+      .serverError: "服务异常",
+      .clientError: "请求错误",
+      .timeout: "请求超时",
+      .networkUnavailable: "网络不可达",
+      .invalidResponse: "响应异常",
+      .unknown: "未知错误"
+    ]
+
+    private static let diagnosticsGuidanceTexts: [ProviderConnectivityStatus: String] = [
+      .healthy: "Provider 可用，建议继续在当前配置下运行生成任务。",
+      .invalidConfiguration: "请先修正 Base URL、API Key 或额外 Header JSON，再重新测试。",
+      .unauthorized: "请检查 API Key 是否正确、是否过期，或是否对应当前 Provider。",
+      .forbidden: "当前账号没有访问该模型/端点权限，请检查平台配额与权限策略。",
+      .rateLimited: "请求过于频繁，建议稍后重试，或切换到限流更宽松的 Provider。",
+      .serverError: "Provider 服务端异常，建议稍后重试或临时切换 Provider。",
+      .clientError: "请求参数或头信息可能不兼容，请检查 Base URL、模型名和额外 Header。",
+      .timeout: "请求超时，请检查网络质量，必要时稍后重试。",
+      .networkUnavailable: "网络不可达，请检查网络连接、DNS、代理/VPN 或公司防火墙策略。",
+      .invalidResponse: "返回内容无法识别，可能是网关/代理返回了非标准响应。",
+      .unknown: "诊断失败，请查看下方错误详情并重试。"
+    ]
+
     var headerBar: some View {
       HStack(spacing: UIStyle.compactSpacing) {
         VStack(alignment: .leading, spacing: 2) {
@@ -161,20 +189,123 @@
     @ViewBuilder
     var detailSection: some View {
       if let provider = selectedProvider {
-        ProviderEditorView(
-          provider: provider,
-          newAPIKey: $newAPIKey,
-          message: $message,
-          isCompact: isEmbedded
-        )
+        VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
+          ProviderEditorView(
+            provider: provider,
+            newAPIKey: $newAPIKey,
+            message: $message,
+            isCompact: isEmbedded
+          )
+          .frame(maxWidth: .infinity, alignment: .topLeading)
+
+          diagnosticsSection(for: provider)
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .appPanelGlass()
       } else {
         ContentUnavailableView("请选择一个 Provider", systemImage: "key")
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           .padding(UIStyle.panelInnerPadding)
           .appPanelGlass()
       }
+    }
+
+    func diagnosticsSection(for provider: LLMProvider) -> some View {
+      let snapshot = diagnosticsByProviderID[provider.id]
+      let isDiagnosing = diagnosingProviderID == provider.id
+
+      return VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+        HStack {
+          Text("连通性诊断")
+            .font(.headline)
+          Spacer()
+          if let snapshot {
+            Text(snapshot.checkedAt, style: .time)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        HStack(spacing: UIStyle.compactSpacing) {
+          Button(isDiagnosing ? "测试中..." : "测试连接") {
+            runConnectivityDiagnostics(for: provider)
+          }
+          .appPrimaryActionButtonStyle()
+          .disabled(isDiagnosing)
+
+          if isDiagnosing {
+            ProgressView()
+              .controlSize(.small)
+          }
+        }
+
+        if let snapshot {
+          diagnosticsResultView(snapshot.result)
+        } else {
+          Text("尚未执行诊断。点击“测试连接”可快速检查 API Key、网络可达性与响应状态。")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+      }
+      .padding(UIStyle.panelInnerPadding)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .appPanelGlass()
+    }
+
+    @ViewBuilder
+    func diagnosticsResultView(_ result: ProviderConnectivityResult) -> some View {
+      VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+        HStack(spacing: UIStyle.compactSpacing) {
+          Text(diagnosticsStatusTitle(result.status))
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(diagnosticsStatusColor(result.status).opacity(0.2), in: Capsule())
+            .foregroundStyle(diagnosticsStatusColor(result.status))
+
+          if let latencyMilliseconds = result.latencyMilliseconds {
+            Text("延迟 \(latencyMilliseconds) ms")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+
+          if let statusCode = result.httpStatusCode {
+            Text("HTTP \(statusCode)")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        Text(diagnosticsGuidanceText(result))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+
+        if let message = result.message, message.isEmpty == false, result.status != .healthy {
+          Text(message)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+        }
+      }
+    }
+
+    func diagnosticsStatusTitle(_ status: ProviderConnectivityStatus) -> String {
+      Self.diagnosticsStatusTitles[status] ?? "未知错误"
+    }
+
+    func diagnosticsStatusColor(_ status: ProviderConnectivityStatus) -> Color {
+      switch status {
+      case .healthy:
+        return UIStyle.positiveStatusColor
+      case .rateLimited, .timeout, .networkUnavailable:
+        return UIStyle.warningStatusColor
+      case .invalidConfiguration, .unauthorized, .forbidden, .serverError, .clientError,
+        .invalidResponse, .unknown:
+        return UIStyle.destructiveStatusColor
+      }
+    }
+
+    func diagnosticsGuidanceText(_ result: ProviderConnectivityResult) -> String {
+      Self.diagnosticsGuidanceTexts[result.status] ?? "诊断失败，请稍后重试。"
     }
 
     @ViewBuilder

@@ -213,10 +213,17 @@ extension PlanInputView {
           items: [
             AppExportMenuItem(
               id: "todos-csv",
-              title: "导出 CSV",
+              title: "导出 CSV（兼容）",
               systemImage: "tablecells.fill"
             ) {
               exportTodosCSV()
+            },
+            AppExportMenuItem(
+              id: "todos-csv-extended",
+              title: "导出 CSV（扩展）",
+              systemImage: "tablecells.badge.ellipsis"
+            ) {
+              exportTodosExtendedCSV()
             }
           ]
         )
@@ -303,7 +310,11 @@ extension PlanInputView {
         .lineLimit(2)
 
       HStack(spacing: 8) {
-        Text(todo.statusRaw)
+        Text(todo.status.rawValue)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+
+        Text("P:\(todo.priority.rawValue)")
           .font(.caption)
           .foregroundStyle(.secondary)
 
@@ -311,8 +322,12 @@ extension PlanInputView {
           .font(.caption)
           .foregroundStyle(.secondary)
 
-        if let scheduledAt = todo.scheduledAt {
-          Text(scheduledAt.formatted(date: .abbreviated, time: .shortened))
+        if let completedAt = todo.completedAt {
+          Text("完成 \(completedAt.formatted(date: .abbreviated, time: .shortened))")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        } else if let scheduledAt = todo.scheduledAt {
+          Text("计划 \(scheduledAt.formatted(date: .abbreviated, time: .shortened))")
             .font(.caption)
             .foregroundStyle(.secondary)
         }

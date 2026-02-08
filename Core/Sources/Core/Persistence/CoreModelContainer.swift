@@ -10,6 +10,7 @@ public enum CoreModelContainer {
       Claim.self,
       Citation.self,
       GenerationRecord.self,
+      AutomationAuditEntry.self,
       LLMProvider.self
     ])
 

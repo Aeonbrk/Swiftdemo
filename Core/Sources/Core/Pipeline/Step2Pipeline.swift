@@ -1,7 +1,7 @@
 import Foundation
 
 public struct Step2Pipeline {
-  public static let promptVersion = "step2-v1"
+  public static let promptVersion = "step2-v2"
 
   private let client: OpenAICompatibleClient
   private let model: String
@@ -17,7 +17,16 @@ public struct Step2Pipeline {
       Return exactly one JSON object (no prose) matching:
       {
         "flashcards": [{"front":"...","back":"...","tagsRaw":"tag1 tag2"}],
-        "todos": [{"title":"...","detail":"...","estimatedMinutes":30,"frequencyRaw":"once"}]
+        "todos": [{
+          "title":"...",
+          "detail":"...",
+          "estimatedMinutes":30,
+          "frequencyRaw":"once",
+          "statusRaw":"todo|doing|blocked|done (optional)",
+          "priorityRaw":"low|medium|high (optional)",
+          "scheduledAtISO8601":"2026-02-09T09:00:00Z (optional)",
+          "dueAtISO8601":"2026-02-11T18:00:00Z (optional)"
+        }]
       }
       """
 

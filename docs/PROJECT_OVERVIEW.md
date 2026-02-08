@@ -2,7 +2,7 @@
 
 > 文档用途：将历史设计稿与 MVP 计划合并为一份“可执行、可维护、以代码为准”的项目说明。
 >
-> 最后核对日期：2026-02-07（已对照真实代码与构建结果）
+> 最后核对日期：2026-02-08（已对照真实代码与构建结果）
 
 ## 1. 项目定位
 
@@ -75,6 +75,7 @@
 - `Claim` 与 `Citation` 建立关联，用于“结论-引用”追溯。
 - `Citation` 包含 `verificationStatusRaw` 与 `verificationMetadataJSON`，为后续校验扩展预留。
 - `LLMProvider` 保存 Provider 元信息与 Keychain 账户引用，`isActive` 表示当前激活项。
+- `TodoItem` 使用语义字段统一执行状态：`status`（todo/doing/blocked/done）、`priority`（low/medium/high）与 `completedAt`（完成时间），并保留 `statusRaw`/`priorityRaw` 兼容历史数据。
 
 ## 6. 运行流程（当前实现）
 
@@ -95,9 +96,9 @@ xcodebuild -project demo.xcodeproj -scheme demo -destination 'platform=macOS' -d
 xcodebuild -project demo.xcodeproj -scheme demo -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
 ```
 
-核对结果（2026-02-07）：
+核对结果（2026-02-08）：
 
-- `Core` 测试通过（14 tests）。
+- `Core` 测试通过（16 tests）。
 - macOS build 成功。
 - iOS Simulator build 成功。
 

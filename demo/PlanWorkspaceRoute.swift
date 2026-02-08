@@ -23,7 +23,7 @@ enum PlanWorkspaceSection: String, CaseIterable, Identifiable {
     case .inputAndGeneration:
       [.input, .preview]
     case .learningArtifacts:
-      [.cards, .todos]
+      [.cards, .todos, .execution]
     case .evidenceAndHistory:
       [.citations, .history]
     }
@@ -35,6 +35,7 @@ enum PlanWorkspaceRoute: String, CaseIterable, Identifiable, Hashable {
   case preview
   case cards
   case todos
+  case execution
   case citations
   case history
 
@@ -50,6 +51,8 @@ enum PlanWorkspaceRoute: String, CaseIterable, Identifiable, Hashable {
       "卡片"
     case .todos:
       "任务"
+    case .execution:
+      "执行"
     case .citations:
       "引用"
     case .history:
@@ -67,6 +70,8 @@ enum PlanWorkspaceRoute: String, CaseIterable, Identifiable, Hashable {
       "rectangle.stack"
     case .todos:
       "checklist"
+    case .execution:
+      "bolt.horizontal.circle"
     case .citations:
       "link"
     case .history:
@@ -78,7 +83,7 @@ enum PlanWorkspaceRoute: String, CaseIterable, Identifiable, Hashable {
     switch self {
     case .input, .preview:
       .inputAndGeneration
-    case .cards, .todos:
+    case .cards, .todos, .execution:
       .learningArtifacts
     case .citations, .history:
       .evidenceAndHistory
@@ -95,10 +100,12 @@ enum PlanWorkspaceRoute: String, CaseIterable, Identifiable, Hashable {
       "3"
     case .todos:
       "4"
-    case .citations:
+    case .execution:
       "5"
-    case .history:
+    case .citations:
       "6"
+    case .history:
+      "7"
     }
   }
 
@@ -112,10 +119,12 @@ enum PlanWorkspaceRoute: String, CaseIterable, Identifiable, Hashable {
       "3"
     case .todos:
       "4"
-    case .citations:
+    case .execution:
       "5"
-    case .history:
+    case .citations:
       "6"
+    case .history:
+      "7"
     }
   }
 }
