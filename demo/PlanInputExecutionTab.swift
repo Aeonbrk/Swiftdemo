@@ -43,7 +43,10 @@ struct PendingSyncReview: Identifiable {
 
 extension PlanInputView {
   var executionTab: some View {
-    AppRouteScaffold {
+    let scoreByTodoID = executionScoreByTodoID
+    let evidenceLookup = executionEvidenceLookup
+
+    return AppRouteScaffold {
       executionToolbar
 
       if executionSuggestionRows.isEmpty == false {
@@ -69,7 +72,7 @@ extension PlanInputView {
       } else {
         AppPanelList {
           ForEach(executionFilteredTodos, id: \.id) { todo in
-            executionRow(todo)
+            executionRow(todo, scoreByTodoID: scoreByTodoID, evidenceLookup: evidenceLookup)
               .padding(.horizontal, UIStyle.panelInnerPadding)
               .padding(.vertical, UIStyle.listRowVerticalPadding)
               .appRowGlass()
@@ -156,6 +159,13 @@ extension PlanInputView {
 
   private var executionScoreByTodoID: [UUID: Int] {
     Dictionary(uniqueKeysWithValues: executionRecommendations.map { ($0.todoID, $0.score) })
+  }
+
+  private var executionEvidenceLookup: ExecutionEvidenceLookup {
+    ExecutionEvidenceLookup(
+      claimsByID: Dictionary(uniqueKeysWithValues: document.claims.map { ($0.id.uuidString, $0) }),
+      citationsByID: Dictionary(uniqueKeysWithValues: document.citations.map { ($0.id.uuidString, $0) })
+    )
   }
 
   private var executionRecommendationPanel: some View {
@@ -311,12 +321,16 @@ extension PlanInputView {
     todo.dueAt ?? todo.scheduledAt ?? todo.createdAt
   }
 
-  private func executionRow(_ todo: TodoItem) -> some View {
+  private func executionRow(
+    _ todo: TodoItem,
+    scoreByTodoID: [UUID: Int],
+    evidenceLookup: ExecutionEvidenceLookup
+  ) -> some View {
     VStack(alignment: .leading, spacing: 8) {
       executionRowHeader(for: todo)
       executionRowDetail(for: todo)
-      executionRowMeta(for: todo)
-      executionRowEvidence(for: todo)
+      executionRowMeta(for: todo, scoreByTodoID: scoreByTodoID)
+      executionRowEvidence(for: todo, evidenceLookup: evidenceLookup)
       executionRowActions(for: todo)
     }
   }
@@ -346,7 +360,7 @@ extension PlanInputView {
     }
   }
 
-  private func executionRowMeta(for todo: TodoItem) -> some View {
+  private func executionRowMeta(for todo: TodoItem, scoreByTodoID: [UUID: Int]) -> some View {
     HStack(spacing: 8) {
       Text("P:\(todo.priority.rawValue)")
         .font(.caption2)

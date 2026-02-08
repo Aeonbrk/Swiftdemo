@@ -12,6 +12,7 @@ enum PlanInputMainTab: Hashable {
   case history
 }
 
+@MainActor
 struct PlanInputView: View {
   @Environment(\.modelContext) var modelContext
   @Query(filter: #Predicate<LLMProvider> { $0.isActive == true }, sort: \LLMProvider.updatedAt, order: .reverse)

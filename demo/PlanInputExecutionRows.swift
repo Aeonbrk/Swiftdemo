@@ -2,6 +2,11 @@ import Core
 import Foundation
 import SwiftUI
 
+struct ExecutionEvidenceLookup {
+  let claimsByID: [String: Claim]
+  let citationsByID: [String: Citation]
+}
+
 extension PlanInputView {
   func executionRowActions(for todo: TodoItem) -> some View {
     HStack(spacing: 8) {
@@ -35,10 +40,10 @@ extension PlanInputView {
     }
   }
 
-  func executionRowEvidence(for todo: TodoItem) -> some View {
-    let linkedClaims = executionLinkedClaims(for: todo)
-    let linkedCitations = executionLinkedCitations(for: todo)
-    let missingEvidenceCount = executionMissingEvidenceCount(for: todo)
+  func executionRowEvidence(for todo: TodoItem, evidenceLookup: ExecutionEvidenceLookup) -> some View {
+    let linkedClaims = executionLinkedClaims(for: todo, evidenceLookup: evidenceLookup)
+    let linkedCitations = executionLinkedCitations(for: todo, evidenceLookup: evidenceLookup)
+    let missingEvidenceCount = executionMissingEvidenceCount(for: todo, evidenceLookup: evidenceLookup)
 
     return Group {
       if linkedClaims.isEmpty == false || linkedCitations.isEmpty == false || missingEvidenceCount > 0 {
@@ -149,25 +154,27 @@ extension PlanInputView {
     }
   }
 
-  private var executionClaimByID: [String: Claim] {
-    Dictionary(uniqueKeysWithValues: document.claims.map { ($0.id.uuidString, $0) })
+  private func executionLinkedClaims(
+    for todo: TodoItem,
+    evidenceLookup: ExecutionEvidenceLookup
+  ) -> [Claim] {
+    todo.linkedClaimIDs.compactMap { evidenceLookup.claimsByID[$0] }
   }
 
-  private var executionCitationByID: [String: Citation] {
-    Dictionary(uniqueKeysWithValues: document.citations.map { ($0.id.uuidString, $0) })
+  private func executionLinkedCitations(
+    for todo: TodoItem,
+    evidenceLookup: ExecutionEvidenceLookup
+  ) -> [Citation] {
+    todo.linkedCitationIDs.compactMap { evidenceLookup.citationsByID[$0] }
   }
 
-  private func executionLinkedClaims(for todo: TodoItem) -> [Claim] {
-    todo.linkedClaimIDs.compactMap { executionClaimByID[$0] }
-  }
-
-  private func executionLinkedCitations(for todo: TodoItem) -> [Citation] {
-    todo.linkedCitationIDs.compactMap { executionCitationByID[$0] }
-  }
-
-  private func executionMissingEvidenceCount(for todo: TodoItem) -> Int {
-    let missingClaimCount = todo.linkedClaimIDs.filter { executionClaimByID[$0] == nil }.count
-    let missingCitationCount = todo.linkedCitationIDs.filter { executionCitationByID[$0] == nil }.count
+  private func executionMissingEvidenceCount(
+    for todo: TodoItem,
+    evidenceLookup: ExecutionEvidenceLookup
+  ) -> Int {
+    let missingClaimCount = todo.linkedClaimIDs.filter { evidenceLookup.claimsByID[$0] == nil }.count
+    let missingCitationCount = todo.linkedCitationIDs.filter { evidenceLookup.citationsByID[$0] == nil }
+      .count
     return missingClaimCount + missingCitationCount
   }
 

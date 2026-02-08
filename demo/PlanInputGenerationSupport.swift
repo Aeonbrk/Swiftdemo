@@ -18,14 +18,14 @@ struct ProviderSnapshot: Sendable {
   }
 }
 
-struct GenerationRequestContext {
+struct GenerationRequestContext: Sendable {
   let providerSnapshot: ProviderSnapshot
   let baseURL: URL
   let apiKey: String
   let extraHeaders: [String: String]
 }
 
-struct GenerationRecordInput {
+struct GenerationRecordInput: Sendable {
   let provider: ProviderSnapshot?
   let promptVersion: String
   let statusRaw: String

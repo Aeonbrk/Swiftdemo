@@ -3,7 +3,7 @@
   import Foundation
   import SwiftData
 
-  private struct ConnectivityProbeInput {
+  private struct ConnectivityProbeInput: Sendable {
     let providerID: UUID
     let baseURL: URL
     let apiKey: String

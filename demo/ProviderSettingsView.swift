@@ -3,11 +3,12 @@
   import SwiftData
   import SwiftUI
 
-  struct ProviderDiagnosticsSnapshot {
+  struct ProviderDiagnosticsSnapshot: Sendable {
     let result: ProviderConnectivityResult
     let checkedAt: Date
   }
 
+  @MainActor
   struct ProviderSettingsView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) var modelContext
