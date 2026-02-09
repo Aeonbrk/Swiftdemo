@@ -57,7 +57,6 @@
       }
       .padding(isEmbedded ? UIStyle.panelInnerPadding : UIStyle.panelPadding)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-      .appPanelGlass()
       .onAppear {
         refreshSelectionIfNeeded()
       }

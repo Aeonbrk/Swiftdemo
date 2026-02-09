@@ -50,11 +50,14 @@
       ScrollView {
         VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
           basicInfoSection
+          Divider()
           apiKeySection
+          Divider()
           activeSection
           localMessageSection
         }
-        .padding(UIStyle.panelPadding)
+        .padding(.horizontal, UIStyle.panelInnerPadding)
+        .padding(.vertical, UIStyle.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
       }
       .onChange(of: provider.id) { _, _ in
@@ -76,84 +79,85 @@
     }
 
     private var basicInfoSection: some View {
-      settingsCard(title: "基础信息") {
-        VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
-          LabeledContent("名称") {
-            TextField("例如：OpenAI", text: $provider.name)
-              .textFieldStyle(.plain)
-              .appFieldSurface()
-          }
+      sectionBlock(title: "基础信息") {
+        providerFormRow("名称") {
+          TextField("例如：OpenAI", text: $provider.name)
+            .textFieldStyle(.plain)
+            .appFieldSurface()
+        }
 
-          LabeledContent("Base URL") {
-            TextField("https://api.openai.com/v1", text: $provider.baseURL)
-              .textFieldStyle(.plain)
-              .appFieldSurface()
-          }
+        providerFormRow("Base URL") {
+          TextField("https://api.openai.com/v1", text: $provider.baseURL)
+            .textFieldStyle(.plain)
+            .appFieldSurface()
+        }
 
-          LabeledContent("模型（Model）") {
-            TextField("例如：gpt-4.1-mini", text: $provider.model)
-              .textFieldStyle(.plain)
-              .appFieldSurface()
-          }
+        providerFormRow("模型（Model）") {
+          TextField("例如：gpt-4.1-mini", text: $provider.model)
+            .textFieldStyle(.plain)
+            .appFieldSurface()
+        }
 
-          DisclosureGroup("额外 Headers（JSON）", isExpanded: $isExtraHeadersExpanded) {
-            Text("用于 OpenRouter 等需要额外 Header 的 Provider（例如 Referer/Title）。")
-              .font(.caption)
-              .foregroundStyle(.secondary)
+        DisclosureGroup("额外 Headers（JSON）", isExpanded: $isExtraHeadersExpanded) {
+          Text("用于 OpenRouter 等需要额外 Header 的 Provider（例如 Referer/Title）。")
+            .font(.caption)
+            .foregroundStyle(.secondary)
 
-            TextEditor(text: $provider.extraHeadersJSON)
-              .font(.system(.body, design: .monospaced))
-              .scrollContentBackground(.hidden)
-              .frame(minHeight: textEditorMinHeight)
-              .appFieldSurface(.field)
-          }
+          TextEditor(text: $provider.extraHeadersJSON)
+            .font(.system(.body, design: .monospaced))
+            .scrollContentBackground(.hidden)
+            .frame(minHeight: textEditorMinHeight)
+            .appFieldSurface(.field)
+        }
 
-          if let embeddedDiagnosticsSection {
-            Divider()
-            embeddedDiagnosticsSection
-          }
+        if let embeddedDiagnosticsSection {
+          Divider()
+          embeddedDiagnosticsSection
         }
       }
     }
 
     private var apiKeySection: some View {
-      settingsCard(title: "API Key（Keychain）") {
-        VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
-          LabeledContent("状态") {
-            Text(hasKey ? "已保存" : "未保存")
-              .foregroundStyle(.secondary)
-          }
+      sectionBlock(title: "API Key（Keychain）") {
+        providerFormRow("状态") {
+          Text(hasKey ? "已保存" : "未保存")
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
 
-          LabeledContent("新 API Key") {
-            HStack(spacing: UIStyle.compactSpacing) {
-              SecureField("输入新的 API Key", text: $newAPIKey)
-                .textFieldStyle(.plain)
-                .appFieldSurface()
+        providerFormRow("新 API Key") {
+          HStack(spacing: UIStyle.compactSpacing) {
+            SecureField("输入新的 API Key", text: $newAPIKey)
+              .textFieldStyle(.plain)
+              .appFieldSurface()
 
-              Button("保存") {
-                saveKey()
-              }
-              .appPrimaryActionButtonStyle()
-              .disabled(newAPIKey.isEmpty)
+            Button("保存") {
+              saveKey()
             }
+            .appPrimaryActionButtonStyle()
+            .disabled(newAPIKey.isEmpty)
           }
         }
       }
     }
 
     private var activeSection: some View {
-      settingsCard(title: "激活") {
-        VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
-          LabeledContent("状态") {
-            Text(provider.isActive ? "已激活" : "未激活")
-              .foregroundStyle(.secondary)
-          }
+      sectionBlock(
+        title: "激活",
+        trailing: provider.isActive ? "已激活" : "未激活",
+        trailingColor: provider.isActive ? UIStyle.positiveStatusColor : .secondary
+      ) {
+        if provider.isActive == false {
+          HStack {
+            Spacer(minLength: UIStyle.providerFormLabelWidth + UIStyle.sectionSpacing)
 
-          Button(provider.isActive ? "已激活" : "设为激活") {
-            setActive()
+            Button("设为激活") {
+              setActive()
+            }
+            .appSecondaryActionButtonStyle()
+
+            Spacer()
           }
-          .appSecondaryActionButtonStyle()
-          .disabled(provider.isActive)
         }
       }
     }
@@ -171,19 +175,44 @@
       }
     }
 
-    private func settingsCard<Content: View>(
+    private func sectionBlock<Content: View>(
       title: String,
+      trailing: String? = nil,
+      trailingColor: Color = .secondary,
       @ViewBuilder content: () -> Content
     ) -> some View {
       VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+        HStack(spacing: UIStyle.compactSpacing) {
+          Text(title)
+            .font(.headline)
+
+          if let trailing {
+            Text(trailing)
+              .font(.subheadline.weight(.semibold))
+              .foregroundStyle(trailingColor)
+          }
+
+          Spacer()
+        }
+
+        VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
+          content()
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func providerFormRow<Content: View>(
+      _ title: String,
+      @ViewBuilder content: () -> Content
+    ) -> some View {
+      HStack(alignment: .firstTextBaseline, spacing: UIStyle.sectionSpacing) {
         Text(title)
-          .font(.headline)
+          .frame(width: UIStyle.providerFormLabelWidth, alignment: .leading)
 
         content()
+          .frame(maxWidth: .infinity, alignment: .leading)
       }
-      .padding(UIStyle.panelInnerPadding)
-      .frame(maxWidth: .infinity, alignment: .leading)
-      .appPanelGlass()
     }
 
     private func saveKey() {

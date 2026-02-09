@@ -95,7 +95,6 @@
       }
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .padding(UIStyle.panelInnerPadding)
-      .appPanelGlass()
     }
 
     var providerListSection: some View {
@@ -132,7 +131,8 @@
                 providerRow(provider)
               }
             }
-            .padding(4)
+            .padding(.horizontal, UIStyle.panelInnerPadding)
+            .padding(.vertical, 4)
           }
           .frame(maxHeight: isEmbedded ? 210 : 280)
           .appListContainerGlass()
@@ -212,7 +212,6 @@
         ContentUnavailableView("请选择一个 Provider", systemImage: "key")
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           .padding(UIStyle.panelInnerPadding)
-          .appPanelGlass()
       }
     }
 
@@ -224,15 +223,15 @@
         HStack(alignment: .center) {
           Text("连通性诊断")
             .font(.subheadline.weight(.semibold))
+
           Spacer()
+
           if let snapshot {
             Text(snapshot.checkedAt, style: .time)
               .font(.caption)
               .foregroundStyle(.secondary)
           }
-        }
 
-        HStack(spacing: UIStyle.compactSpacing) {
           Button(isDiagnosing ? "测试中..." : "测试连接") {
             runConnectivityDiagnostics(for: provider)
           }
@@ -249,7 +248,12 @@
           diagnosticsSummaryView(snapshot.result)
 
           DisclosureGroup("诊断详情", isExpanded: diagnosticsDetailsExpandedBinding(for: provider.id)) {
-            diagnosticsDetailView(snapshot.result)
+            ProviderDiagnosticsDetailView(
+              snapshot: snapshot,
+              provider: provider,
+              diagnosticsStatusTitle: diagnosticsStatusTitle,
+              diagnosticsGuidanceText: diagnosticsGuidanceText
+            )
               .padding(.top, 4)
           }
           .font(.caption)
@@ -301,22 +305,6 @@
               .font(.caption)
               .foregroundStyle(.secondary)
           }
-        }
-      }
-    }
-
-    @ViewBuilder
-    func diagnosticsDetailView(_ result: ProviderConnectivityResult) -> some View {
-      VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
-        Text(diagnosticsGuidanceText(result))
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
-        if let message = result.message, message.isEmpty == false, result.status != .healthy {
-          Text(message)
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .textSelection(.enabled)
         }
       }
     }
@@ -376,5 +364,6 @@
 
       selectedProviderID = providers.first?.id
     }
+
   }
 #endif

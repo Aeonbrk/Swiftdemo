@@ -40,6 +40,7 @@ enum UIStyle {
 
   static let toolbarHorizontalPadding: CGFloat = 12
   static let toolbarVerticalPadding: CGFloat = 10
+  static let providerFormLabelWidth: CGFloat = 120
 
   static let workspaceColumnSpacing: CGFloat = 10
   static let workspaceSidebarMinWidth: CGFloat = 156
