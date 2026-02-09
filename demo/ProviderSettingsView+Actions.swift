@@ -53,7 +53,7 @@
 
       if !hasActiveProvider, let candidateID = selectedProviderID ?? providers.first?.id {
         setActiveProviderID(candidateID)
-        message = "默认 Provider 已存在，已设为激活。"
+        message = "默认 Provider 已存在"
         return
       }
 
@@ -72,7 +72,7 @@
 
     func setActiveProvider(_ provider: LLMProvider) {
       setActiveProviderID(provider.id)
-      message = "已设为激活。"
+      message = nil
     }
 
     func deleteProvider(_ provider: LLMProvider) {

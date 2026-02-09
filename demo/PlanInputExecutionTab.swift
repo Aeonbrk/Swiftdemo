@@ -3,7 +3,7 @@ import Foundation
 import SwiftData
 import SwiftUI
 
-enum ExecutionDashboardFilter: String, CaseIterable, Identifiable {
+enum ExecutionDashboardFilter: String, CaseIterable, Identifiable, Sendable {
   case today
   case overdue
   case done
@@ -25,7 +25,7 @@ enum ExecutionDashboardFilter: String, CaseIterable, Identifiable {
   }
 }
 
-struct PendingSyncReview: Identifiable {
+struct PendingSyncReview: Identifiable, Sendable {
   let id: UUID
   let todoID: UUID
   let remoteRecord: ExternalTaskRecord
@@ -42,23 +42,17 @@ struct PendingSyncReview: Identifiable {
 }
 
 extension PlanInputView {
-  var executionTab: some View {
+  var todayExecutionView: some View {
     let scoreByTodoID = executionScoreByTodoID
     let evidenceLookup = executionEvidenceLookup
 
     return AppRouteScaffold {
+      workflowProgressView
       executionToolbar
+      executionQualityIssuePanel
 
       if !executionSuggestionRows.isEmpty {
         executionRecommendationPanel
-      }
-
-      if !pendingSyncReviews.isEmpty {
-        executionPendingReviewPanel
-      }
-
-      if !recentAutomationAudits.isEmpty {
-        executionAutomationAuditPanel
       }
 
       if executionFilteredTodos.isEmpty {
@@ -66,21 +60,19 @@ extension PlanInputView {
           AppEmptyStatePanel(
             title: "当前筛选下无任务",
             systemImage: "bolt.slash",
-            description: "切换筛选条件，或先在任务页创建待办。"
+            description: "切换筛选条件，或先在“整理产物”里创建任务。"
           )
         }
       } else {
-        AppPanelList {
-          ForEach(executionFilteredTodos, id: \.id) { todo in
-            executionRow(todo, scoreByTodoID: scoreByTodoID, evidenceLookup: evidenceLookup)
-              .padding(.horizontal, UIStyle.panelInnerPadding)
-              .padding(.vertical, UIStyle.listRowVerticalPadding)
-              .appRowGlass()
-              .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
-              .listRowSeparator(.hidden)
-              .listRowBackground(Color.clear)
-          }
+        AppSplitWorkspace(leadingMinWidth: UIStyle.contentColumnMinWidth) {
+          executionList(scoreByTodoID: scoreByTodoID, evidenceLookup: evidenceLookup)
+        } trailing: {
+          executionDetail
         }
+      }
+
+      if isExecutionAdvancedExpanded {
+        executionAdvancedPanel
       }
     }
   }
@@ -95,6 +87,24 @@ extension PlanInputView {
         }
         .pickerStyle(.segmented)
 
+        Button {
+          createTodo()
+          if let todo = selectedTodo {
+            setTodoStatus(todo, to: .todo)
+          }
+        } label: {
+          Label("新建任务", systemImage: "plus")
+        }
+        .appPrimaryActionButtonStyle()
+
+        Button(role: .destructive) {
+          deleteSelectedTodo()
+        } label: {
+          Label("删除任务", systemImage: "trash")
+        }
+        .appSecondaryActionButtonStyle()
+        .disabled(selectedTodo == nil)
+
         Spacer(minLength: UIStyle.compactSpacing)
 
         if !executionSuggestionRows.isEmpty {
@@ -103,25 +113,12 @@ extension PlanInputView {
             .foregroundStyle(.secondary)
         }
 
-        Menu {
-          Picker("冲突策略", selection: syncOwnershipPolicyBinding) {
-            ForEach(SyncOwnershipPolicy.allCases, id: \.self) { policy in
-              Text(syncOwnershipPolicyTitle(policy)).tag(policy)
-            }
+        Button {
+          withAnimation(.snappy(duration: 0.2)) {
+            isExecutionAdvancedExpanded.toggle()
           }
         } label: {
-          Label(syncOwnershipPolicyTitle(syncOwnershipPolicy), systemImage: "arrow.triangle.2.circlepath")
-        }
-        .appSecondaryActionButtonStyle()
-
-        Menu {
-          Picker("自动化权限", selection: automationPermissionPolicyBinding) {
-            ForEach(AutomationPermissionPolicy.allCases, id: \.self) { policy in
-              Text(automationPermissionPolicyTitle(policy)).tag(policy)
-            }
-          }
-        } label: {
-          Label(automationPermissionPolicyTitle(automationPermissionPolicy), systemImage: "hand.raised")
+          Label(isExecutionAdvancedExpanded ? "收起高级" : "高级", systemImage: "slider.horizontal.3")
         }
         .appSecondaryActionButtonStyle()
 
@@ -148,16 +145,17 @@ extension PlanInputView {
   }
 
   private var executionSuggestionRows: [(recommendation: TodoRecommendation, todo: TodoItem)] {
-    pendingExecutionRecommendations
+    let todoByID = Dictionary(uniqueKeysWithValues: document.todos.map { ($0.id, $0) })
+    return pendingExecutionRecommendations
       .prefix(3)
       .compactMap { recommendation in
-        document.todos.first(where: { $0.id == recommendation.todoID }).map {
+        todoByID[recommendation.todoID].map {
           (recommendation: recommendation, todo: $0)
         }
       }
   }
 
-  private var executionScoreByTodoID: [UUID: Int] {
+  var executionScoreByTodoID: [UUID: Int] {
     Dictionary(uniqueKeysWithValues: executionRecommendations.map { ($0.todoID, $0.score) })
   }
 
@@ -202,6 +200,48 @@ extension PlanInputView {
     }
   }
 
+  private func executionList(
+    scoreByTodoID: [UUID: Int],
+    evidenceLookup: ExecutionEvidenceLookup
+  ) -> some View {
+    List(selection: $selectedTodoID) {
+      ForEach(executionFilteredTodos, id: \.id) { todo in
+        executionRow(todo, scoreByTodoID: scoreByTodoID, evidenceLookup: evidenceLookup)
+          .padding(.horizontal, UIStyle.panelInnerPadding)
+          .padding(.vertical, UIStyle.listRowVerticalPadding)
+          .appRowGlass()
+          .tag(todo.id)
+          .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
+      }
+      .onDelete(perform: deleteTodos)
+    }
+    .listStyle(.plain)
+    .scrollContentBackground(.hidden)
+    .appListContainerGlass()
+  }
+
+  private var executionDetail: some View {
+    Group {
+      if let selectedTodo {
+        todoEditor(for: selectedTodo)
+      } else if executionFilteredTodos.isEmpty {
+        AppEmptyStatePanel(
+          title: "暂无任务详情",
+          systemImage: "checklist",
+          description: "请先创建任务或切换筛选条件。"
+        )
+      } else {
+        AppEmptyStatePanel(
+          title: "请选择任务",
+          systemImage: "checkmark.circle"
+        )
+      }
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+
   private var pendingSyncReviews: [PendingSyncReview] {
     pendingSyncReviewsByTodoID.values.sorted(by: { $0.createdAt > $1.createdAt })
   }
@@ -210,177 +250,107 @@ extension PlanInputView {
     document.automationAudits.sorted(by: { $0.createdAt > $1.createdAt })
   }
 
-  private var executionPendingReviewPanel: some View {
+  private var executionAdvancedPanel: some View {
     AppPanelCard {
       VStack(alignment: .leading, spacing: 10) {
-        Text("待审核自动化变更")
+        Text("高级执行策略")
           .font(.headline)
 
-        ForEach(pendingSyncReviews, id: \.id) { review in
-          VStack(alignment: .leading, spacing: 8) {
-            Text(pendingReviewTitle(review))
-              .font(.subheadline.weight(.semibold))
-            Text(review.reason)
-              .font(.caption)
-              .foregroundStyle(.secondary)
-              .lineLimit(2)
-
-            HStack(spacing: 8) {
-              Button("保留本地") {
-                keepLocalForPendingReview(review)
+        HStack(spacing: UIStyle.compactSpacing) {
+          Menu {
+            Picker("冲突策略", selection: syncOwnershipPolicyBinding) {
+              ForEach(SyncOwnershipPolicy.allCases, id: \.self) { policy in
+                Text(syncOwnershipPolicyTitle(policy)).tag(policy)
               }
-              .appSecondaryActionButtonStyle()
-
-              Button("应用远端") {
-                applyRemoteForPendingReview(review)
-              }
-              .appPrimaryActionButtonStyle()
-
-              Button("打开任务") {
-                navigateToPendingReviewTodo(review)
-              }
-              .appSecondaryActionButtonStyle()
             }
+          } label: {
+            Label(syncOwnershipPolicyTitle(syncOwnershipPolicy), systemImage: "arrow.triangle.2.circlepath")
           }
-          .padding(8)
-          .appChipGlass()
+          .appSecondaryActionButtonStyle()
+
+          Menu {
+            Picker("自动化权限", selection: automationPermissionPolicyBinding) {
+              ForEach(AutomationPermissionPolicy.allCases, id: \.self) { policy in
+                Text(automationPermissionPolicyTitle(policy)).tag(policy)
+              }
+            }
+          } label: {
+            Label(automationPermissionPolicyTitle(automationPermissionPolicy), systemImage: "hand.raised")
+          }
+          .appSecondaryActionButtonStyle()
         }
+
+        if !pendingSyncReviews.isEmpty {
+          executionPendingReviewPanel
+        }
+
+        if !recentAutomationAudits.isEmpty {
+          executionAutomationAuditPanel
+        }
+      }
+    }
+  }
+
+  private var executionPendingReviewPanel: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("待审核自动化变更")
+        .font(.headline)
+
+      ForEach(pendingSyncReviews, id: \.id) { review in
+        VStack(alignment: .leading, spacing: 8) {
+          Text(pendingReviewTitle(review))
+            .font(.subheadline.weight(.semibold))
+          Text(review.reason)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+
+          HStack(spacing: 8) {
+            Button("保留本地") {
+              keepLocalForPendingReview(review)
+            }
+            .appSecondaryActionButtonStyle()
+
+            Button("应用远端") {
+              applyRemoteForPendingReview(review)
+            }
+            .appPrimaryActionButtonStyle()
+
+            Button("打开任务") {
+              navigateToPendingReviewTodo(review)
+            }
+            .appSecondaryActionButtonStyle()
+          }
+        }
+        .padding(8)
+        .appChipGlass()
       }
     }
   }
 
   private var executionAutomationAuditPanel: some View {
-    AppPanelCard {
-      VStack(alignment: .leading, spacing: 8) {
-        Text("自动化审计")
-          .font(.headline)
+    VStack(alignment: .leading, spacing: 8) {
+      Text("自动化审计")
+        .font(.headline)
 
-        ForEach(Array(recentAutomationAudits.prefix(5)), id: \.id) { audit in
-          HStack(alignment: .top, spacing: 8) {
-            Text(automationAuditStatusTitle(audit.status))
+      ForEach(Array(recentAutomationAudits.prefix(5)), id: \.id) { audit in
+        HStack(alignment: .top, spacing: 8) {
+          Text(automationAuditStatusTitle(audit.status))
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .frame(minWidth: 42, alignment: .leading)
+
+          VStack(alignment: .leading, spacing: 2) {
+            Text(audit.summary)
+              .font(.caption)
+              .lineLimit(2)
+            Text(audit.createdAt.formatted(date: .abbreviated, time: .shortened))
               .font(.caption2)
               .foregroundStyle(.secondary)
-              .frame(minWidth: 42, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 2) {
-              Text(audit.summary)
-                .font(.caption)
-                .lineLimit(2)
-              Text(audit.createdAt.formatted(date: .abbreviated, time: .shortened))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            }
           }
         }
       }
     }
   }
 
-  private var executionFilteredTodos: [TodoItem] {
-    let scoreByTodoID = executionScoreByTodoID
-    let todos = document.todos.filter(matchesExecutionFilter)
-    switch executionFilter {
-    case .done:
-      return todos.sorted(by: { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) })
-    default:
-      return todos.sorted {
-        let lhsScore = scoreByTodoID[$0.id] ?? Int.min
-        let rhsScore = scoreByTodoID[$1.id] ?? Int.min
-        if lhsScore != rhsScore {
-          return lhsScore > rhsScore
-        }
-        return executionSortDate(for: $0) < executionSortDate(for: $1)
-      }
-    }
-  }
-
-  private func matchesExecutionFilter(_ todo: TodoItem) -> Bool {
-    let startOfToday = Calendar.current.startOfDay(for: .now)
-    let isDone = todo.status == .done || todo.completedAt != nil
-    let isBlocked = todo.status == .blocked
-    let isOverdue = todo.dueAt.map { $0 < startOfToday } ?? false
-    let isTodayScheduled = [todo.scheduledAt, todo.dueAt]
-      .compactMap { $0 }
-      .contains(where: { Calendar.current.isDateInToday($0) })
-    let hasNoSchedule = todo.scheduledAt == nil && todo.dueAt == nil
-
-    switch executionFilter {
-    case .today:
-      return !isDone && !isBlocked && !isOverdue
-        && (isTodayScheduled || hasNoSchedule)
-    case .overdue:
-      return !isDone && isOverdue
-    case .done:
-      return isDone
-    case .blocked:
-      return isBlocked && !isDone
-    }
-  }
-
-  private func executionSortDate(for todo: TodoItem) -> Date {
-    todo.dueAt ?? todo.scheduledAt ?? todo.createdAt
-  }
-
-  private func executionRow(
-    _ todo: TodoItem,
-    scoreByTodoID: [UUID: Int],
-    evidenceLookup: ExecutionEvidenceLookup
-  ) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
-      executionRowHeader(for: todo)
-      executionRowDetail(for: todo)
-      executionRowMeta(for: todo, scoreByTodoID: scoreByTodoID)
-      executionRowEvidence(for: todo, evidenceLookup: evidenceLookup)
-      executionRowActions(for: todo)
-    }
-  }
-
-  private func executionRowHeader(for todo: TodoItem) -> some View {
-    HStack(alignment: .firstTextBaseline, spacing: 8) {
-      Text(todo.title.isEmpty ? "（无标题）" : todo.title)
-        .font(.body.weight(.medium))
-        .lineLimit(2)
-
-      Spacer(minLength: UIStyle.compactSpacing)
-
-      Text(todo.status.rawValue)
-        .font(.caption)
-        .foregroundStyle(.secondary)
-    }
-  }
-
-  private func executionRowDetail(for todo: TodoItem) -> some View {
-    Group {
-      if !todo.detail.isEmpty {
-        Text(todo.detail)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
-      }
-    }
-  }
-
-  private func executionRowMeta(for todo: TodoItem, scoreByTodoID: [UUID: Int]) -> some View {
-    HStack(spacing: 8) {
-      Text("P:\(todo.priority.rawValue)")
-        .font(.caption2)
-        .foregroundStyle(.secondary)
-
-      if let score = scoreByTodoID[todo.id] {
-        Text("Score \(score)")
-          .font(.caption2)
-          .foregroundStyle(.secondary)
-      }
-
-      if let dueAt = todo.dueAt {
-        Text("截止 \(dueAt.formatted(date: .abbreviated, time: .shortened))")
-          .font(.caption2)
-          .foregroundStyle(.secondary)
-      } else if let scheduledAt = todo.scheduledAt {
-        Text("计划 \(scheduledAt.formatted(date: .abbreviated, time: .shortened))")
-          .font(.caption2)
-          .foregroundStyle(.secondary)
-      }
-    }
-  }
 }

@@ -1,130 +1,62 @@
 import SwiftUI
 
-enum PlanWorkspaceSection: String, CaseIterable, Identifiable {
-  case inputAndGeneration
-  case learningArtifacts
-  case evidenceAndHistory
-
-  var id: String { rawValue }
-
-  var title: String {
-    switch self {
-    case .inputAndGeneration:
-      "输入与生成"
-    case .learningArtifacts:
-      "学习产物"
-    case .evidenceAndHistory:
-      "证据与历史"
-    }
-  }
-
-  var routes: [PlanWorkspaceRoute] {
-    switch self {
-    case .inputAndGeneration:
-      [.input, .preview]
-    case .learningArtifacts:
-      [.cards, .todos, .execution]
-    case .evidenceAndHistory:
-      [.citations, .history]
-    }
-  }
-}
-
 enum PlanWorkspaceRoute: String, CaseIterable, Identifiable, Hashable {
-  case input
-  case preview
-  case cards
-  case todos
-  case execution
-  case citations
-  case history
+  case inputMaterial
+  case generatePlan
+  case organizeArtifacts
+  case todayExecution
 
   var id: String { rawValue }
 
   var title: String {
     switch self {
-    case .input:
-      "输入"
-    case .preview:
-      "预览"
-    case .cards:
-      "卡片"
-    case .todos:
-      "任务"
-    case .execution:
-      "执行"
-    case .citations:
-      "引用"
-    case .history:
-      "记录"
+    case .inputMaterial:
+      "输入素材"
+    case .generatePlan:
+      "生成计划"
+    case .organizeArtifacts:
+      "整理产物"
+    case .todayExecution:
+      "今日执行"
     }
   }
 
   var systemImage: String {
     switch self {
-    case .input:
+    case .inputMaterial:
       "square.and.pencil"
-    case .preview:
+    case .generatePlan:
       "doc.text.magnifyingglass"
-    case .cards:
+    case .organizeArtifacts:
       "rectangle.stack"
-    case .todos:
-      "checklist"
-    case .execution:
+    case .todayExecution:
       "bolt.horizontal.circle"
-    case .citations:
-      "link"
-    case .history:
-      "clock.arrow.circlepath"
-    }
-  }
-
-  var section: PlanWorkspaceSection {
-    switch self {
-    case .input, .preview:
-      .inputAndGeneration
-    case .cards, .todos, .execution:
-      .learningArtifacts
-    case .citations, .history:
-      .evidenceAndHistory
     }
   }
 
   var keyboardShortcutKey: KeyEquivalent {
     switch self {
-    case .input:
+    case .inputMaterial:
       "1"
-    case .preview:
+    case .generatePlan:
       "2"
-    case .cards:
+    case .organizeArtifacts:
       "3"
-    case .todos:
+    case .todayExecution:
       "4"
-    case .execution:
-      "5"
-    case .citations:
-      "6"
-    case .history:
-      "7"
     }
   }
 
   var shortcutDisplay: String {
     switch self {
-    case .input:
+    case .inputMaterial:
       "1"
-    case .preview:
+    case .generatePlan:
       "2"
-    case .cards:
+    case .organizeArtifacts:
       "3"
-    case .todos:
+    case .todayExecution:
       "4"
-    case .execution:
-      "5"
-    case .citations:
-      "6"
-    case .history:
-      "7"
     }
   }
 }

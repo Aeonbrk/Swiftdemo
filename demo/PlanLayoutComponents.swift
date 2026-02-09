@@ -13,11 +13,26 @@ struct AppRouteScaffold<Content: View>: View {
   }
 
   var body: some View {
+    scaffoldContent
+      .padding(UIStyle.routeOuterPadding)
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+  }
+
+  @ViewBuilder
+  private var scaffoldContent: some View {
+    if #available(iOS 26, macOS 26, *) {
+      GlassEffectContainer(spacing: UIStyle.panelGap) {
+        baseScaffoldContent
+      }
+    } else {
+      baseScaffoldContent
+    }
+  }
+
+  private var baseScaffoldContent: some View {
     VStack(alignment: .leading, spacing: UIStyle.panelGap) {
       content()
     }
-    .padding(UIStyle.routeOuterPadding)
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 }
 
@@ -85,6 +100,22 @@ struct AppSplitWorkspace<Leading: View, Trailing: View>: View {
   }
 
   var body: some View {
+    workspaceContent
+      .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+  }
+
+  @ViewBuilder
+  private var workspaceContent: some View {
+    if #available(iOS 26, macOS 26, *) {
+      GlassEffectContainer(spacing: UIStyle.panelGap) {
+        baseWorkspaceContent
+      }
+    } else {
+      baseWorkspaceContent
+    }
+  }
+
+  private var baseWorkspaceContent: some View {
     HStack(spacing: UIStyle.panelGap) {
       VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
         leading()
@@ -100,6 +131,5 @@ struct AppSplitWorkspace<Leading: View, Trailing: View>: View {
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
       .appPanelGlass()
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 }

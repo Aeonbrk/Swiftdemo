@@ -1,64 +1,46 @@
 import SwiftUI
 
 struct PlanWorkspaceDetailView<
-  InputView: View,
-  PreviewView: View,
-  CardsView: View,
-  TodosView: View,
-  ExecutionView: View,
-  CitationsView: View,
-  HistoryView: View
+  InputMaterialView: View,
+  GeneratePlanView: View,
+  ArtifactsView: View,
+  ExecutionView: View
 >: View {
   let selectedRoute: PlanWorkspaceRoute
   let useLegacyRouteSwitchRendering: Bool
 
-  private let inputView: () -> InputView
-  private let previewView: () -> PreviewView
-  private let cardsView: () -> CardsView
-  private let todosView: () -> TodosView
-  private let executionView: () -> ExecutionView
-  private let citationsView: () -> CitationsView
-  private let historyView: () -> HistoryView
+  private let inputMaterialView: () -> InputMaterialView
+  private let generatePlanView: () -> GeneratePlanView
+  private let organizeArtifactsView: () -> ArtifactsView
+  private let todayExecutionView: () -> ExecutionView
 
   init(
     selectedRoute: PlanWorkspaceRoute,
     useLegacyRouteSwitchRendering: Bool = false,
-    @ViewBuilder inputView: @escaping () -> InputView,
-    @ViewBuilder previewView: @escaping () -> PreviewView,
-    @ViewBuilder cardsView: @escaping () -> CardsView,
-    @ViewBuilder todosView: @escaping () -> TodosView,
-    @ViewBuilder executionView: @escaping () -> ExecutionView,
-    @ViewBuilder citationsView: @escaping () -> CitationsView,
-    @ViewBuilder historyView: @escaping () -> HistoryView
+    @ViewBuilder inputMaterialView: @escaping () -> InputMaterialView,
+    @ViewBuilder generatePlanView: @escaping () -> GeneratePlanView,
+    @ViewBuilder organizeArtifactsView: @escaping () -> ArtifactsView,
+    @ViewBuilder todayExecutionView: @escaping () -> ExecutionView
   ) {
     self.selectedRoute = selectedRoute
     self.useLegacyRouteSwitchRendering = useLegacyRouteSwitchRendering
-    self.inputView = inputView
-    self.previewView = previewView
-    self.cardsView = cardsView
-    self.todosView = todosView
-    self.executionView = executionView
-    self.citationsView = citationsView
-    self.historyView = historyView
+    self.inputMaterialView = inputMaterialView
+    self.generatePlanView = generatePlanView
+    self.organizeArtifactsView = organizeArtifactsView
+    self.todayExecutionView = todayExecutionView
   }
 
   var body: some View {
     Group {
       switch selectedRoute {
-      case .input:
-        inputView()
-      case .preview:
-        previewView()
-      case .cards:
-        cardsView()
-      case .todos:
-        todosView()
-      case .execution:
-        executionView()
-      case .citations:
-        citationsView()
-      case .history:
-        historyView()
+      case .inputMaterial:
+        inputMaterialView()
+      case .generatePlan:
+        generatePlanView()
+      case .organizeArtifacts:
+        organizeArtifactsView()
+      case .todayExecution:
+        todayExecutionView()
       }
     }
     .id(useLegacyRouteSwitchRendering ? selectedRoute : nil)

@@ -54,7 +54,6 @@
           apiKeySection
           Divider()
           activeSection
-          localMessageSection
         }
         .padding(.horizontal, UIStyle.panelInnerPadding)
         .padding(.vertical, UIStyle.panelPadding)
@@ -162,19 +161,6 @@
       }
     }
 
-    @ViewBuilder
-    private var localMessageSection: some View {
-      if let message, !message.isEmpty {
-        Text(message)
-          .font(.callout)
-          .foregroundStyle(.secondary)
-          .textSelection(.enabled)
-          .padding(.horizontal, UIStyle.panelInnerPadding)
-          .padding(.vertical, 6)
-          .appChipGlass()
-      }
-    }
-
     private func sectionBlock<Content: View>(
       title: String,
       trailing: String? = nil,
@@ -236,7 +222,7 @@
           item.isActive = item.id == provider.id
           item.updatedAt = .now
         }
-        message = "已设为激活。"
+        message = nil
       } catch {
         message = "设置失败：\(error)"
       }

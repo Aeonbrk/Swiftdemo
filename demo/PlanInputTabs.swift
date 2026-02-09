@@ -2,9 +2,56 @@ import Core
 import SwiftUI
 
 extension PlanInputView {
-  var inputTab: some View {
+  enum ArtifactsSecondaryView: String, CaseIterable, Identifiable {
+    case overview
+    case cards
+    case citations
+    case history
+
+    var id: String { rawValue }
+
+    var title: String {
+      switch self {
+      case .overview:
+        "概览"
+      case .cards:
+        "卡片"
+      case .citations:
+        "引用"
+      case .history:
+        "记录"
+      }
+    }
+
+    var systemImage: String {
+      switch self {
+      case .overview:
+        "square.grid.2x2"
+      case .cards:
+        "rectangle.stack"
+      case .citations:
+        "link"
+      case .history:
+        "clock.arrow.circlepath"
+      }
+    }
+  }
+
+  var inputMaterialView: some View {
     ScrollView {
       AppRouteScaffold {
+        workflowProgressView
+
+        AppPanelCard {
+          VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+            Text("输入素材")
+              .font(.headline)
+            Text("把你的学习目标、背景和限制一次性写清楚，系统会据此生成结构化计划。")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
         AppPanelCard {
           Text("计划标题")
             .font(.caption)
@@ -31,19 +78,89 @@ extension PlanInputView {
     }
   }
 
-  var previewTab: some View {
+  var generatePlanView: some View {
     ScrollView {
       AppRouteScaffold {
+        workflowProgressView
+
+        AppPanelCard {
+          VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+            Text("生成计划")
+              .font(.headline)
+            Text("先生成结构化计划，再生成任务与卡片。高级参数默认折叠，不影响主流程。")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+
+            providerHintRow
+
+            HStack(spacing: UIStyle.compactSpacing) {
+              Button {
+                generateStep1()
+              } label: {
+                Label("生成计划", systemImage: "sparkles")
+              }
+              .appPrimaryActionButtonStyle()
+              .disabled(
+                isGenerating || document.rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+              )
+
+              Button {
+                generateStep2()
+              } label: {
+                Label("生成任务", systemImage: "wand.and.stars")
+              }
+              .appSecondaryActionButtonStyle()
+              .disabled(isGenerating || document.outline == nil)
+
+              if isGenerating {
+                ProgressView()
+                  .controlSize(.small)
+              }
+            }
+          }
+        }
+
+        DisclosureGroup("高级设置") {
+          VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+            Picker("任务写入方式", selection: $step2MergeMode) {
+              Text("覆盖（替换旧任务）").tag(Step2MergeMode.replace)
+              Text("合并（保留旧任务）").tag(Step2MergeMode.merge)
+            }
+            .pickerStyle(.segmented)
+            .disabled(isGenerating)
+          }
+          .padding(.top, UIStyle.compactSpacing)
+        }
+        .padding(.horizontal, UIStyle.routeInnerPadding)
+
+        #if os(macOS)
+          if activeProviderName == nil {
+            Button {
+              withAnimation(.snappy(duration: 0.2)) {
+                isProviderInspectorVisible = true
+              }
+            } label: {
+              Label("打开 Provider 设置", systemImage: "slider.horizontal.3")
+            }
+            .padding(.horizontal, UIStyle.routeInnerPadding)
+            .appSecondaryActionButtonStyle()
+          }
+        #endif
+
         if let outline = document.outline, !outline.planMarkdown.isEmpty {
           AppPanelCard {
-            previewText(for: outline.planMarkdown)
+            VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+              Text("计划预览")
+                .font(.headline)
+              previewText(for: outline.planMarkdown)
+            }
           }
         } else {
           AppPanelCard {
             AppEmptyStatePanel(
-              title: "暂无预览",
+              title: "尚未生成计划",
               systemImage: "doc.text.magnifyingglass",
-              description: "先运行 Step 1，即可在这里查看结构化结果。"
+              description: "请先点击“生成计划”。"
             )
           }
         }
@@ -51,336 +168,145 @@ extension PlanInputView {
     }
   }
 
-  var cardsTab: some View {
+  var organizeArtifactsView: some View {
     AppRouteScaffold {
-      AppSplitWorkspace(leadingMinWidth: UIStyle.contentColumnMinWidth) {
-        cardsToolbar
-        cardsList
-      } trailing: {
-        cardsDetail
-      }
-    }
-  }
+      workflowProgressView
 
-  var todosTab: some View {
-    AppRouteScaffold {
-      AppSplitWorkspace(leadingMinWidth: UIStyle.contentColumnMinWidth) {
-        todosToolbar
-        todosList
-      } trailing: {
-        todosDetail
-      }
-    }
-  }
+      AppPanelCard {
+        VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+          Text("整理产物")
+            .font(.headline)
+          Text("默认展示任务与卡片总览，详细内容在“更多”里按需查看。")
+            .font(.caption)
+            .foregroundStyle(.secondary)
 
-  var citationsTab: some View {
-    AppRouteScaffold {
-      AppPanelList {
-        ForEach(sortedCitations, id: \.id) { citation in
-          citationRow(citation)
-            .padding(.horizontal, UIStyle.panelInnerPadding)
-            .padding(.vertical, UIStyle.listRowVerticalPadding)
-            .appRowGlass()
-            .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-        }
-      }
-    }
-  }
+          HStack(spacing: UIStyle.compactSpacing) {
+            AppExportMenuButton(
+              title: "导出任务",
+              items: [
+                AppExportMenuItem(
+                  id: "todos-csv",
+                  title: "导出 CSV（兼容）",
+                  systemImage: "tablecells.fill"
+                ) {
+                  exportTodosCSV()
+                },
+                AppExportMenuItem(
+                  id: "todos-csv-extended",
+                  title: "导出 CSV（扩展）",
+                  systemImage: "tablecells.badge.ellipsis"
+                ) {
+                  exportTodosExtendedCSV()
+                }
+              ]
+            )
+            .disabled(document.todos.isEmpty)
 
-  var historyTab: some View {
-    AppRouteScaffold {
-      AppPanelList {
-        ForEach(sortedGenerations, id: \.id) { record in
-          generationRow(record)
-            .padding(.horizontal, UIStyle.panelInnerPadding)
-            .padding(.vertical, UIStyle.listRowVerticalPadding)
-            .appRowGlass()
-            .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
-        }
-      }
-    }
-  }
+            AppExportMenuButton(
+              title: "导出卡片",
+              items: [
+                AppExportMenuItem(
+                  id: "cards-tsv",
+                  title: "导出 TSV",
+                  systemImage: "tablecells"
+                ) {
+                  exportFlashcardsTSV()
+                },
+                AppExportMenuItem(
+                  id: "cards-csv",
+                  title: "导出 CSV",
+                  systemImage: "tablecells.fill"
+                ) {
+                  exportFlashcardsCSV()
+                }
+              ]
+            )
+            .disabled(document.flashcards.isEmpty)
 
-  private var cardsToolbar: some View {
-    AppActionBar {
-      HStack(spacing: UIStyle.compactSpacing) {
-        Button {
-          createFlashcard()
-        } label: {
-          Label("新建卡片", systemImage: "plus")
-        }
-        .appPrimaryActionButtonStyle()
+            Spacer(minLength: UIStyle.compactSpacing)
 
-        Button(role: .destructive) {
-          deleteSelectedFlashcard()
-        } label: {
-          Label("删除", systemImage: "trash")
-        }
-        .appSecondaryActionButtonStyle()
-        .disabled(selectedCard == nil)
-
-        Spacer(minLength: UIStyle.compactSpacing)
-
-        AppExportMenuButton(
-          title: "导出",
-          items: [
-            AppExportMenuItem(
-              id: "cards-tsv",
-              title: "导出 TSV",
-              systemImage: "tablecells"
-            ) {
-              exportFlashcardsTSV()
-            },
-            AppExportMenuItem(
-              id: "cards-csv",
-              title: "导出 CSV",
-              systemImage: "tablecells.fill"
-            ) {
-              exportFlashcardsCSV()
+            Menu {
+              ForEach(ArtifactsSecondaryView.allCases, id: \.self) { view in
+                Button {
+                  selectedArtifactsSecondaryView = view
+                } label: {
+                  Label(view.title, systemImage: view.systemImage)
+                }
+              }
+            } label: {
+              Label("更多", systemImage: "ellipsis.circle")
             }
-          ]
-        )
-        .disabled(document.flashcards.isEmpty)
+            .appSecondaryActionButtonStyle()
+          }
+        }
+      }
+
+      switch selectedArtifactsSecondaryView {
+      case .overview:
+        artifactsOverviewPanel
+      case .cards:
+        cardsSection
+      case .citations:
+        citationsSection
+      case .history:
+        historySection
       }
     }
   }
 
-  private var cardsList: some View {
-    List(selection: $selectedCardID) {
-      ForEach(sortedFlashcards, id: \.id) { card in
-        cardRow(card)
+  var cardsSection: some View {
+    AppSplitWorkspace(leadingMinWidth: UIStyle.contentColumnMinWidth) {
+      cardsToolbar
+      cardsList
+    } trailing: {
+      cardsDetail
+    }
+  }
+
+  var citationsSection: some View {
+    AppPanelList {
+      ForEach(sortedCitations, id: \.id) { citation in
+        citationRow(citation)
           .padding(.horizontal, UIStyle.panelInnerPadding)
           .padding(.vertical, UIStyle.listRowVerticalPadding)
           .appRowGlass()
-          .tag(card.id)
           .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
           .listRowSeparator(.hidden)
           .listRowBackground(Color.clear)
       }
-      .onDelete(perform: deleteFlashcards)
-    }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
-    .appListContainerGlass()
-  }
-
-  private var cardsDetail: some View {
-    Group {
-      if let selectedCard {
-        cardEditor(for: selectedCard)
-      } else if document.flashcards.isEmpty {
-        AppEmptyStatePanel(
-          title: "暂无卡片",
-          systemImage: "rectangle.stack.badge.plus",
-          description: "运行 Step 2 后可自动生成，也可以手动新建。"
-        )
-      } else {
-        AppEmptyStatePanel(
-          title: "请选择卡片",
-          systemImage: "rectangle.stack"
-        )
-      }
-    }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-  }
-
-  private var todosToolbar: some View {
-    AppActionBar {
-      HStack(spacing: UIStyle.compactSpacing) {
-        Button {
-          createTodo()
-        } label: {
-          Label("新建任务", systemImage: "plus")
-        }
-        .appPrimaryActionButtonStyle()
-
-        Button(role: .destructive) {
-          deleteSelectedTodo()
-        } label: {
-          Label("删除", systemImage: "trash")
-        }
-        .appSecondaryActionButtonStyle()
-        .disabled(selectedTodo == nil)
-
-        Spacer(minLength: UIStyle.compactSpacing)
-
-        AppExportMenuButton(
-          title: "导出",
-          items: [
-            AppExportMenuItem(
-              id: "todos-csv",
-              title: "导出 CSV（兼容）",
-              systemImage: "tablecells.fill"
-            ) {
-              exportTodosCSV()
-            },
-            AppExportMenuItem(
-              id: "todos-csv-extended",
-              title: "导出 CSV（扩展）",
-              systemImage: "tablecells.badge.ellipsis"
-            ) {
-              exportTodosExtendedCSV()
-            }
-          ]
-        )
-        .disabled(document.todos.isEmpty)
-      }
     }
   }
 
-  private var todosList: some View {
-    List(selection: $selectedTodoID) {
-      ForEach(sortedTodos, id: \.id) { todo in
-        todoRow(todo)
+  var historySection: some View {
+    AppPanelList {
+      ForEach(sortedGenerations, id: \.id) { record in
+        generationRow(record)
           .padding(.horizontal, UIStyle.panelInnerPadding)
           .padding(.vertical, UIStyle.listRowVerticalPadding)
           .appRowGlass()
-          .tag(todo.id)
           .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
           .listRowSeparator(.hidden)
           .listRowBackground(Color.clear)
       }
-      .onDelete(perform: deleteTodos)
     }
-    .listStyle(.plain)
-    .scrollContentBackground(.hidden)
-    .appListContainerGlass()
   }
 
-  private var todosDetail: some View {
-    Group {
-      if let selectedTodo {
-        todoEditor(for: selectedTodo)
-      } else if document.todos.isEmpty {
-        AppEmptyStatePanel(
-          title: "暂无任务",
-          systemImage: "checklist",
-          description: "运行 Step 2 后可自动生成，也可以手动补充。"
-        )
-      } else {
-        AppEmptyStatePanel(
-          title: "请选择任务",
-          systemImage: "checkmark.circle"
-        )
-      }
-    }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-  }
+  var artifactsOverviewPanel: some View {
+    AppPanelCard {
+      VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
+        Text("产物概览")
+          .font(.headline)
 
-  private func previewText(for markdown: String) -> some View {
-    Group {
-      if let attributed = try? AttributedString(markdown: markdown) {
-        Text(attributed)
-      } else {
-        Text(markdown)
-      }
-    }
-    .lineSpacing(4)
-    .frame(maxWidth: .infinity, alignment: .leading)
-    .textSelection(.enabled)
-  }
-
-  private func cardRow(_ card: Flashcard) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(card.front.isEmpty ? "（正面为空）" : card.front)
-        .lineLimit(2)
-
-      HStack(spacing: 8) {
-        Text(card.masteryRaw)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
-        if !card.tagsRaw.isEmpty {
-          Text(card.tagsRaw)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
+        HStack(spacing: UIStyle.compactSpacing) {
+          Label("任务 \(document.todos.count)", systemImage: "checklist")
+          Label("卡片 \(document.flashcards.count)", systemImage: "rectangle.stack")
+          Label("引用 \(document.citations.count)", systemImage: "link")
+          Label("记录 \(document.generations.count)", systemImage: "clock.arrow.circlepath")
         }
+        .font(.caption)
+        .foregroundStyle(.secondary)
       }
     }
   }
 
-  private func todoRow(_ todo: TodoItem) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-      Text(todo.title.isEmpty ? "（无标题）" : todo.title)
-        .lineLimit(2)
-
-      HStack(spacing: 8) {
-        Text(todo.status.rawValue)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
-        Text("P:\(todo.priority.rawValue)")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
-        Text(todo.frequencyRaw)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
-        if let completedAt = todo.completedAt {
-          Text("完成 \(completedAt.formatted(date: .abbreviated, time: .shortened))")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        } else if let scheduledAt = todo.scheduledAt {
-          Text("计划 \(scheduledAt.formatted(date: .abbreviated, time: .shortened))")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-      }
-    }
-  }
-
-  private func citationRow(_ citation: Citation) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-      HStack(spacing: 8) {
-        Text(citation.verificationStatusRaw)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
-        if let url = URL(string: citation.url) {
-          Link(citation.url, destination: url)
-            .font(.callout)
-        } else {
-          Text(citation.url)
-            .font(.callout)
-        }
-      }
-
-      if let title = citation.title, !title.isEmpty {
-        Text(title)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
-    }
-  }
-
-  private func generationRow(_ record: GenerationRecord) -> some View {
-    VStack(alignment: .leading, spacing: 4) {
-      HStack {
-        Text(record.statusRaw)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-
-        Spacer()
-
-        Text(record.createdAt.formatted(date: .abbreviated, time: .shortened))
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
-
-      Text("\(record.providerName) · \(record.model)")
-        .font(.callout)
-
-      if let errorSummary = record.errorSummary, !errorSummary.isEmpty {
-        Text(errorSummary)
-          .font(.caption)
-          .foregroundStyle(UIStyle.destructiveStatusColor)
-      }
-    }
-  }
 }

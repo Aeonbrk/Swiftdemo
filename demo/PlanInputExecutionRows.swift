@@ -192,17 +192,81 @@ extension PlanInputView {
   func navigateToTodoEvidenceEditor(_ todo: TodoItem) {
     selectedTodoID = todo.id
     #if os(macOS)
-      selectedRoute = .todos
+      selectedRoute = .todayExecution
     #else
-      selectedMainTab = .todos
+      selectedMainTab = .todayExecution
     #endif
   }
 
   private func navigateToCitations() {
+    selectedArtifactsSecondaryView = .citations
     #if os(macOS)
-      selectedRoute = .citations
+      selectedRoute = .organizeArtifacts
     #else
-      selectedMainTab = .citations
+      selectedMainTab = .organizeArtifacts
     #endif
   }
+  func executionRow(
+    _ todo: TodoItem,
+    scoreByTodoID: [UUID: Int],
+    evidenceLookup: ExecutionEvidenceLookup
+  ) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+      executionRowHeader(for: todo)
+      executionRowDetail(for: todo)
+      executionRowMeta(for: todo, scoreByTodoID: scoreByTodoID)
+      executionRowEvidence(for: todo, evidenceLookup: evidenceLookup)
+      executionRowActions(for: todo)
+    }
+  }
+
+  private func executionRowHeader(for todo: TodoItem) -> some View {
+    HStack(alignment: .firstTextBaseline, spacing: 8) {
+      Text(todo.title.isEmpty ? "（无标题）" : todo.title)
+        .font(.body.weight(.medium))
+        .lineLimit(2)
+
+      Spacer(minLength: UIStyle.compactSpacing)
+
+      Text(todo.status.rawValue)
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+  }
+
+  private func executionRowDetail(for todo: TodoItem) -> some View {
+    Group {
+      if !todo.detail.isEmpty {
+        Text(todo.detail)
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .lineLimit(2)
+      }
+    }
+  }
+
+  private func executionRowMeta(for todo: TodoItem, scoreByTodoID: [UUID: Int]) -> some View {
+    HStack(spacing: 8) {
+      Text("P:\(todo.priority.rawValue)")
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+
+      if let score = scoreByTodoID[todo.id] {
+        Text("Score \(score)")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+      }
+
+      if let dueAt = todo.dueAt {
+        Text("截止 \(dueAt.formatted(date: .abbreviated, time: .shortened))")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+      } else if let scheduledAt = todo.scheduledAt {
+        Text("计划 \(scheduledAt.formatted(date: .abbreviated, time: .shortened))")
+          .font(.caption2)
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+
 }

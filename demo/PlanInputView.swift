@@ -3,13 +3,10 @@ import SwiftData
 import SwiftUI
 
 enum PlanInputMainTab: Hashable {
-  case input
-  case preview
-  case cards
-  case todos
-  case execution
-  case citations
-  case history
+  case inputMaterial
+  case generatePlan
+  case organizeArtifacts
+  case todayExecution
 }
 
 @MainActor
@@ -28,20 +25,21 @@ struct PlanInputView: View {
   @State var errorMessage: String?
   @State var selectedCardID: UUID?
   @State var selectedTodoID: UUID?
-  @State var selectedMainTab: PlanInputMainTab = .input
+  @State var selectedMainTab: PlanInputMainTab = .inputMaterial
   @State var executionFilter: ExecutionDashboardFilter = .today
   @State var step2MergeMode: Step2MergeMode = .replace
   @State var handledRecommendationTodoIDs: Set<UUID> = []
   @State var pendingSyncReviewsByTodoID: [UUID: PendingSyncReview] = [:]
+  @State var isExecutionAdvancedExpanded = false
+  @State var selectedArtifactsSecondaryView: ArtifactsSecondaryView = .overview
   @State var isShowingCardBack = false
   @State private var updatedAtDebounceTask: Task<Void, Never>?
 
   #if os(macOS)
-    @State var selectedRoute: PlanWorkspaceRoute = .input
-    @State private var isProviderInspectorVisible = false
+    @State var selectedRoute: PlanWorkspaceRoute = .inputMaterial
+    @State var isProviderInspectorVisible = false
     @State var routeAutomationTask: Task<Void, Never>?
     @State var performanceAutomationEditCounter: Int = 0
-    @FocusState private var isProviderToggleFocused: Bool
   #endif
 
   var activeProviderName: String? {
@@ -70,7 +68,6 @@ struct PlanInputView: View {
 extension PlanInputView {
   private var iosWorkspace: some View {
     VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
-      headerBar
       generationStatusView
       mainTabs
     }
@@ -89,58 +86,6 @@ extension PlanInputView {
     .onDisappear {
       flushDocumentUpdatedAtTouch()
     }
-  }
-
-  @ViewBuilder
-  private var headerBar: some View {
-    if #available(iOS 26, macOS 26, *) {
-      GlassEffectContainer(spacing: UIStyle.compactSpacing) {
-        headerBarContent
-      }
-    } else {
-      headerBarContent
-    }
-  }
-
-  private var headerBarContent: some View {
-    HStack(spacing: UIStyle.compactSpacing) {
-      Button {
-        generateStep1()
-      } label: {
-        Label("生成大纲（Step 1）", systemImage: "sparkles")
-      }
-      .appPrimaryActionButtonStyle()
-      .disabled(
-        isGenerating || document.rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-      )
-
-      Button {
-        generateStep2()
-      } label: {
-        Label("生成任务（Step 2）", systemImage: "wand.and.stars")
-      }
-      .appSecondaryActionButtonStyle()
-      .disabled(isGenerating || document.outline == nil)
-
-      Picker("写入方式", selection: $step2MergeMode) {
-        Text("覆盖").tag(Step2MergeMode.replace)
-        Text("合并").tag(Step2MergeMode.merge)
-      }
-      .pickerStyle(.segmented)
-      .frame(maxWidth: 220)
-      .disabled(isGenerating)
-
-      if isGenerating {
-        ProgressView()
-          .controlSize(.small)
-      }
-
-      Spacer(minLength: UIStyle.compactSpacing)
-      providerStatusView
-    }
-    .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
-    .padding(.vertical, UIStyle.toolbarVerticalPadding)
-    .appTopBarGlass()
   }
 
   @ViewBuilder
@@ -174,85 +119,23 @@ extension PlanInputView {
     .appChipGlass()
   }
 
-  @ViewBuilder
-  private var providerStatusView: some View {
-    #if os(macOS)
-      Button {
-        withAnimation(.snappy(duration: 0.2)) {
-          isProviderInspectorVisible.toggle()
-        }
-      } label: {
-        providerStatusChipContent
-      }
-      .focused($isProviderToggleFocused)
-      .buttonStyle(.plain)
-      .appSurface(.panel, level: .regular, interactive: true, borderTone: .regular)
-      .appFocusRing(isFocused: isProviderToggleFocused)
-      .help(isProviderInspectorVisible ? "点击关闭 Provider 面板" : "点击打开 Provider 面板")
-    #else
-      providerStatusChipContent
-        .appSurface(.panel, level: .regular, borderTone: .regular)
-    #endif
-  }
-
-  private var providerStatusChipContent: some View {
-    HStack(spacing: 8) {
-      Image(systemName: activeProviderName == nil ? "exclamationmark.shield" : "checkmark.shield")
-        .foregroundStyle(activeProviderName == nil ? UIStyle.warningStatusColor : UIStyle.positiveStatusColor)
-
-      if let activeProviderName {
-        Text("Provider：\(activeProviderName)")
-          .lineLimit(1)
-          .truncationMode(.middle)
-      } else {
-        Text("未激活 Provider")
-          .lineLimit(1)
-      }
-
-      #if os(macOS)
-        Label(
-          isProviderInspectorVisible ? "收起" : "管理",
-          systemImage: isProviderInspectorVisible ? "chevron.right" : "slider.horizontal.3"
-        )
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      #endif
-    }
-    .padding(.horizontal, 10)
-    .padding(.vertical, 6)
-    .font(.callout)
-    .foregroundStyle(.primary)
-  }
-
   private var mainTabs: some View {
     TabView(selection: $selectedMainTab) {
-      inputTab
-        .tabItem { Label("输入", systemImage: "square.and.pencil") }
-        .tag(PlanInputMainTab.input)
+      inputMaterialView
+        .tabItem { Label("输入素材", systemImage: "square.and.pencil") }
+        .tag(PlanInputMainTab.inputMaterial)
 
-      previewTab
-        .tabItem { Label("预览", systemImage: "doc.text.magnifyingglass") }
-        .tag(PlanInputMainTab.preview)
+      generatePlanView
+        .tabItem { Label("生成计划", systemImage: "doc.text.magnifyingglass") }
+        .tag(PlanInputMainTab.generatePlan)
 
-      cardsTab
-        .tabItem { Label("卡片", systemImage: "rectangle.stack") }
-        .tag(PlanInputMainTab.cards)
+      organizeArtifactsView
+        .tabItem { Label("整理产物", systemImage: "rectangle.stack") }
+        .tag(PlanInputMainTab.organizeArtifacts)
 
-      todosTab
-        .tabItem { Label("任务", systemImage: "checklist") }
-        .tag(PlanInputMainTab.todos)
-
-      executionTab
-        .tabItem { Label("执行", systemImage: "bolt.horizontal.circle") }
-        .tag(PlanInputMainTab.execution)
-
-      citationsTab
-        .tabItem { Label("引用", systemImage: "link") }
-        .tag(PlanInputMainTab.citations)
-
-      historyTab
-        .tabItem { Label("记录", systemImage: "clock.arrow.circlepath") }
-        .tag(PlanInputMainTab.history)
+      todayExecutionView
+        .tabItem { Label("今日执行", systemImage: "bolt.horizontal.circle") }
+        .tag(PlanInputMainTab.todayExecution)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -300,7 +183,6 @@ extension PlanInputView {
   extension PlanInputView {
     private var macWorkspace: some View {
       VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
-        headerBar
         generationStatusView
         macWorkspaceContent
       }
@@ -312,15 +194,7 @@ extension PlanInputView {
       }
       .onAppear {
         syncSelectionWithCurrentData()
-        if activeProviderName == nil {
-          isProviderInspectorVisible = true
-        }
         setupRouteAutomationIfNeeded()
-      }
-      .onChange(of: activeProviderName) { _, newValue in
-        if newValue == nil {
-          isProviderInspectorVisible = true
-        }
       }
       .onChange(of: document.flashcards.count) { _, _ in
         syncSelectionWithCurrentData()
@@ -356,13 +230,10 @@ extension PlanInputView {
         PlanWorkspaceDetailView(
           selectedRoute: selectedRoute,
           useLegacyRouteSwitchRendering: Self.useLegacyRouteSwitchRendering,
-          inputView: { inputTab },
-          previewView: { previewTab },
-          cardsView: { cardsTab },
-          todosView: { todosTab },
-          executionView: { executionTab },
-          citationsView: { citationsTab },
-          historyView: { historyTab }
+          inputMaterialView: { inputMaterialView },
+          generatePlanView: { generatePlanView },
+          organizeArtifactsView: { organizeArtifactsView },
+          todayExecutionView: { todayExecutionView }
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       }

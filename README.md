@@ -1,11 +1,11 @@
 # Learning Plan Demo
 
-一个基于 SwiftUI + SwiftData 的学习计划整理应用：把长文本学习计划转成结构化计划、闪卡（Flashcards）和待办（Todos），并支持本地编辑、执行建议与导出。
+一个基于 SwiftUI + SwiftData 的学习计划整理应用：把长文本学习计划转成结构化计划、卡片（Flashcards）和任务（Todos），并在流程化工作区中完成生成、整理与执行。
 
 ## 这个项目解决什么问题
 
-- 把“原始学习文本”稳定转换为可维护的学习资产（计划、卡片、待办）。
-- 在同一个工作区里完成生成、编辑、执行推进与导出。
+- 把“原始学习文本”稳定转换为可维护的学习资产（计划、卡片、任务）。
+- 用四步流程降低上手门槛：输入素材 → 生成计划 → 整理产物 → 今日执行。
 - 通过可替换 Provider（OpenAI-compatible）降低模型接入成本。
 
 ## 能力边界
@@ -14,16 +14,18 @@
 - 多文档管理：创建、选择、删除 `PlanDocument`。
 - 两步生成流程：
   - Step 1：生成 `planJSON`、`planMarkdown`、`claims`、`citations`。
-  - Step 2：生成 `flashcards`、`todos`，支持 `replace` / `merge` 两种合并模式。
-- 执行视图（Execution）：
-  - 待办执行建议（优先级/截止时间/工作量综合评分）。
-  - 外部任务同步策略与待审核队列。
-  - 自动化审计记录（automation audit）。
+  - Step 2：生成 `flashcards`、`todos`，支持 `replace` / `merge`。
+- 流程引导与质量提示：
+  - 顶部流程进度与下一步建议。
+  - 执行可落地性检查（提示型，不阻断）。
+- 今日执行一体化：
+  - 任务筛选、状态推进、执行建议、任务详情、证据关联。
+  - 高级抽屉：同步策略、待审核队列、自动化审计。
 - Provider 管理（macOS）：预设导入、自定义、新增/删除、激活、连通性诊断。
 - API Key 安全存储：仅使用 Keychain。
 - 导出：
   - Flashcards → TSV / CSV
-  - Todos → CSV（含扩展导出字段）
+  - Todos → CSV（兼容 / 扩展）
 - 核心模块单元测试（`Core` package）。
 
 ### 未实现（当前范围外）
@@ -54,10 +56,6 @@ swiftlint lint demo Core/Sources Core/Tests
 ./scripts/launch-mac.sh
 ```
 
-常用参数：
-- `--clean`：清理派生产物后再构建
-- `--derived-data <path>`：指定 DerivedData 路径
-
 ## 目录说明
 
 - `demo/`：应用层 UI 与交互逻辑
@@ -69,17 +67,17 @@ swiftlint lint demo Core/Sources Core/Tests
 
 ## 关键流程（最短路径）
 
-1. 在 Input 页输入学习计划文本。
-2. 执行 Step 1 生成结构化计划与引用。
-3. 执行 Step 2 生成 Flashcards 与 Todos（可选 replace/merge）。
-4. 在 Cards/Todos 标签页编辑内容。
-5. 在 Execution 标签页查看建议、处理同步审核。
-6. 通过导出按钮导出 TSV/CSV 文件（macOS 走保存面板）。
+1. 在「输入素材」填写学习计划文本。
+2. 在「生成计划」执行 Step 1。
+3. 在「生成计划」执行 Step 2（可选 replace/merge）。
+4. 在「整理产物」快速检查任务/卡片/引用/记录。
+5. 自动进入「今日执行」开始推进任务。
+6. 按需导出 TSV/CSV（macOS 走保存面板）。
 
 ## 常见问题
 
 ### 1) 生成时报错 `No active provider`
-先在 Settings 创建并激活一个 Provider。
+先在 Provider 设置里创建并激活一个 Provider。
 
 ### 2) 生成时报错 API key 缺失
 在 Provider 编辑页保存 API key（写入 Keychain）。

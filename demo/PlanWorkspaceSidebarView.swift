@@ -6,22 +6,18 @@ struct PlanWorkspaceSidebarView: View {
 
   var body: some View {
     List {
-      ForEach(PlanWorkspaceSection.allCases) { section in
-        Section(section.title) {
-          ForEach(section.routes) { route in
-            routeButton(route)
-              .listRowInsets(
-                EdgeInsets(
-                  top: 4,
-                  leading: UIStyle.panelInnerPadding,
-                  bottom: 4,
-                  trailing: UIStyle.panelInnerPadding
-                )
-              )
-              .listRowSeparator(.hidden)
-              .listRowBackground(Color.clear)
-          }
-        }
+      ForEach(PlanWorkspaceRoute.allCases) { route in
+        routeButton(route)
+          .listRowInsets(
+            EdgeInsets(
+              top: 4,
+              leading: UIStyle.panelInnerPadding,
+              bottom: 4,
+              trailing: UIStyle.panelInnerPadding
+            )
+          )
+          .listRowSeparator(.hidden)
+          .listRowBackground(Color.clear)
       }
     }
     .listStyle(.plain)

@@ -1,121 +1,89 @@
 # Project Overview: Learning Plan to Cards & Todos
 
-> 文档用途：将历史设计稿与 MVP 计划合并为一份“可执行、可维护、以代码为准”的项目说明。
->
-> 最后核对日期：2026-02-08（已对照真实代码与构建结果）
+> 文档用途：提供“以代码为准”的项目说明，覆盖架构、流程、能力边界与验证方式。
+> 最后核对日期：2026-02-09
 
 ## 1. 项目定位
 
-这是一个原生 SwiftUI 应用：把用户输入的长学习计划文本，经过 OpenAI-compatible LLM 两步处理后，生成可编辑的学习产物。
+这是一个原生 SwiftUI 应用：把用户输入的学习计划文本通过两阶段 LLM 流程，转换为可编辑、可执行、可导出的学习产物。
 
 核心目标：
+- Step 1：生成结构化计划（`planJSON` + `planMarkdown`）及证据（`claims` + `citations`）。
+- Step 2：派生 `flashcards` 与 `todos`。
+- 在统一工作区中完成输入、生成、整理、执行闭环。
 
-- Step 1：生成结构化计划（`planJSON` + `planMarkdown`）与引用相关信息（`claims` + `citations`）。
-- Step 2：基于结构化计划派生 `flashcards` 与 `todos`。
-- 本地持久化：使用 SwiftData 保存原始输入与派生结果。
-- 可导出：Flashcards 导出 TSV/CSV，Todos 导出 CSV。
+## 2. 当前信息架构（macOS）
 
-## 2. 设计合并结论（来自两份原始文档）
+工作区采用四步主流程：
+1. 输入素材
+2. 生成计划
+3. 整理产物
+4. 今日执行
 
-两份文档的共同主线一致：
+关键变化：
+- 旧“任务/执行”分离改为「今日执行」一体化页面。
+- 卡片/引用/记录下沉到「整理产物」的 `更多` 入口。
+- Step 2 成功后自动跳转「今日执行」。
+- Provider Inspector 默认收起，按需打开。
 
-- 采用 `Core`（可复用能力）+ `demo`（SwiftUI UI）分层。
-- 优先交付 macOS 体验，同时保留 iOS/visionOS 复用边界。
-- API Key 仅存 Keychain，不落盘明文。
-- 引用真实性自动验证不在 MVP，但数据层要预留字段。
+## 3. 架构现状（以代码为准）
 
-本说明文档对以上设计进行了代码化校准，下面“当前实现状态”以代码为唯一事实来源。
+### 3.1 模块分层
 
-## 3. 当前实现状态（以代码为准）
+- `Core` Swift Package：模型、LLM client、Step1/Step2 pipeline、执行引擎、导出器、容器工厂。
+- `demo` App：文档列表、流程化工作区、Provider 管理、Keychain 集成。
 
-### 3.1 架构现状
-
-- `Core` Swift Package：模型、LLM client、两步 pipeline、导出器、模型容器。
-- `demo` App：文档列表 + 工作区路由 + Provider Inspector（macOS）+ Keychain 集成。
-
-代码入口：
+### 3.2 关键入口
 
 - App 入口：`demo/demoApp.swift`
-- 主界面：`demo/ContentView.swift`
-- 工作区与路由：`demo/PlanInputView.swift`、`demo/PlanWorkspaceRoute.swift`、`demo/PlanWorkspaceSidebarView.swift`
-- Provider Inspector（macOS）：`demo/ProviderSettingsView.swift` + `demo/ProviderEditorView.swift`
-- 生成辅助：`demo/PlanInputGenerationSupport.swift`
-- 核心包：`Core/Package.swift`
+- 工作区根视图：`demo/PlanInputView.swift`
+- 四步路由：`demo/PlanWorkspaceRoute.swift`
+- 执行页：`demo/PlanInputExecutionTab.swift`
+- 流程引导：`demo/PlanWorkflowProgressView.swift`
+- 质量反馈引擎：`Core/Sources/Core/Execution/WorkflowGuidanceEngine.swift`
 
-### 3.2 能力完成度
+## 4. 能力完成度
 
-| 能力 | 设计目标 | 当前状态 |
-|---|---|---|
-| 多文档管理 | 支持多份计划、原文保存 | 已实现（列表、新建、删除、持久化） |
-| Step 1 生成 | 计划 + 引用结构化输出 | 已实现（Step1Pipeline + 解码 + 入库） |
-| Step 2 生成 | 派生 Cards/Todos | 已实现（Step2Pipeline + 解码 + 入库） |
-| Provider 配置 | 可配置 baseURL/model/headers | 已实现（含预设模板与激活逻辑） |
-| API Key 安全存储 | Keychain 存储与读取 | 已实现 |
-| 导出 | Cards TSV/CSV、Todos CSV | 已实现（macOS 通过 `NSSavePanel`） |
-| 引用字段预留 | verification status 元数据 | 已实现（字段已落模型） |
-| 自动真实性校验 | 自动抓取和验证引用 | 未实现（仅预留字段） |
-| iOS 等平台完整设置体验 | Provider 管理 UI 跨平台可用 | 未完全实现（Inspector 仅 macOS） |
-| `.apkg` / AnkiConnect | 深度 Anki 集成 | 未实现 |
+| 能力 | 当前状态 |
+|---|---|
+| 多文档管理 | 已实现 |
+| Step 1 生成（计划+证据） | 已实现 |
+| Step 2 生成（卡片+任务） | 已实现 |
+| Step 2 replace/merge | 已实现 |
+| 流程进度与下一步引导 | 已实现 |
+| 执行质量提示（非阻断） | 已实现 |
+| 任务执行一体化（列表+详情+动作） | 已实现 |
+| 高级同步/审计折叠能力 | 已实现 |
+| Provider 管理 + Keychain | 已实现（macOS 主路径） |
+| 引用真实性自动校验 | 未实现（仅预留字段） |
 
-## 4. 目录与职责
+## 5. 运行流程（当前实现）
 
-- `Core/Sources/Core/Models/`：SwiftData 实体（`PlanDocument`、`PlanOutline`、`TodoItem`、`Flashcard`、`Claim`、`Citation`、`GenerationRecord`、`LLMProvider`）。
-- `Core/Sources/Core/LLM/`：OpenAI-compatible 协议层与 Provider 预设。
-- `Core/Sources/Core/Pipeline/`：Step1/Step2 生成与 JSON 解码容错。
-- `Core/Sources/Core/Export/`：TSV/CSV 导出器。
-- `Core/Sources/Core/Persistence/`：ModelContainer 构建。
-- `Core/Tests/CoreTests/`：核心单元测试（模型、pipeline、导出、provider 预设）。
-- `demo/`：SwiftUI 应用层与 Keychain 访问。
+1. 在「输入素材」填写原始学习文本。
+2. 在「生成计划」执行 Step 1。
+3. 在「生成计划」执行 Step 2（支持 replace/merge）。
+4. Step 2 成功后自动进入「今日执行」。
+5. 在「今日执行」筛选任务、采纳建议、更新状态、补充详情与证据。
+6. 在「整理产物」查看卡片/引用/记录并导出。
 
-## 5. 数据模型摘要
-
-关键实体关系：
-
-- `PlanDocument` 为聚合根，关联 `outline`、`todos`、`flashcards`、`claims`、`citations`、`generations`。
-- `Claim` 与 `Citation` 建立关联，用于“结论-引用”追溯。
-- `Citation` 包含 `verificationStatusRaw` 与 `verificationMetadataJSON`，为后续校验扩展预留。
-- `LLMProvider` 保存 Provider 元信息与 Keychain 账户引用，`isActive` 表示当前激活项。
-- `TodoItem` 使用语义字段统一执行状态：`status`（todo/doing/blocked/done）、`priority`（low/medium/high）与 `completedAt`（完成时间），并保留 `statusRaw`/`priorityRaw` 兼容历史数据。
-
-## 6. 运行流程（当前实现）
-
-1. 用户在「输入」页填写原文并点击 `生成大纲（Step 1）`。
-2. 应用读取激活 Provider 与 Keychain API Key，调用 `Step1Pipeline`。
-3. 结果写入 `PlanOutline`、`Claim`、`Citation`，并追加 `GenerationRecord`。
-4. 用户点击 `生成任务（Step 2）`，基于 `planJSON/planMarkdown` 调用 `Step2Pipeline`。
-5. 结果覆盖更新 `Flashcard` 与 `TodoItem`，并记录历史。
-6. 用户在 Cards/Todos 里编辑内容，或导出为 TSV/CSV。
-
-## 7. 构建与测试（已验证）
-
-在当前仓库可直接执行：
+## 6. 构建与测试命令
 
 ```bash
 swift test --package-path Core
 xcodebuild -project demo.xcodeproj -scheme demo -destination 'platform=macOS' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
 xcodebuild -project demo.xcodeproj -scheme demo -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
+swiftlint lint demo Core/Sources Core/Tests
 ```
 
-核对结果（2026-02-08）：
+## 7. 已知边界
 
-- `Core` 测试通过（16 tests）。
-- macOS build 成功。
-- iOS Simulator build 成功。
+- Provider 设置体验以 macOS 为主，iOS 以可编译与基础可用为主。
+- 质量反馈当前是提示型 MVP，不阻断执行。
+- UI 层暂无自动化测试，主要依赖 Core 单测 + 双平台构建验证。
 
-## 8. 当前已知边界
+## 8. 后续建议
 
-- Provider Inspector 与编辑 UI 仅在 macOS 编译路径启用。
-- 引用真实性仍为“可展示状态”，没有自动验证服务。
-- Pipeline 目前依赖模型遵守 JSON 输出约定，虽有容错提取，但未引入更严格 schema 版本治理。
-- UI 自动化测试尚未建立，当前以 Core 单测 + 构建验证为主。
-
-## 9. 建议的短期迭代顺序
-
-1. 增加 Step1/Step2 输出 schema 的版本化与错误分级（提升可维护性）。
-2. 增加 Provider 连通性测试入口与失败诊断（提升可用性）。
-3. 补充 UI 层最小回归测试（至少关键生成与导出路径）。
-4. 设计并实现引用真实性校验服务（复用已存在字段）。
-
----
-
-如果后续设计文档与代码发生冲突，请以代码行为为准，并在本文件更新“最后核对日期”。
+1. 继续拆分大文件（`PlanInputExecutionTab.swift`、`PlanInputTabs.swift`），降低维护成本。
+2. 引入最小 UI 回归测试，覆盖四步主流程。
+3. 在质量反馈中增加可配置阈值与忽略策略。
+4. 设计并实现引用真实性自动校验。
