@@ -78,6 +78,8 @@
     func deleteProvider(_ provider: LLMProvider) {
       let wasActive = provider.isActive
       let replacement = providers.first(where: { $0.id != provider.id })
+      diagnosticsByProviderID.removeValue(forKey: provider.id)
+      expandedDiagnosticsProviderIDs.remove(provider.id)
       modelContext.delete(provider)
 
       try? KeychainStore.deletePassword(
@@ -113,8 +115,12 @@
             result: result,
             checkedAt: .now
           )
+          if result.status == .healthy {
+            expandedDiagnosticsProviderIDs.remove(input.providerID)
+          } else {
+            expandedDiagnosticsProviderIDs.insert(input.providerID)
+          }
           diagnosingProviderID = nil
-          message = "已完成连接诊断。"
         }
       }
     }
@@ -203,6 +209,7 @@
         ),
         checkedAt: .now
       )
+      expandedDiagnosticsProviderIDs.insert(providerID)
       diagnosingProviderID = nil
       self.message = message
     }

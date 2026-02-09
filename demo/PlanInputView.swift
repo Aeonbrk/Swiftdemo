@@ -122,19 +122,13 @@ extension PlanInputView {
       .appSecondaryActionButtonStyle()
       .disabled(isGenerating || document.outline == nil)
 
-      Menu {
-        Picker("Step2 写入模式", selection: $step2MergeMode) {
-          Text("覆盖写入").tag(Step2MergeMode.replace)
-          Text("合并追加").tag(Step2MergeMode.merge)
-        }
-      } label: {
-        Label(
-          step2MergeMode == .replace ? "覆盖写入" : "合并追加",
-          systemImage: "arrow.triangle.branch"
-        )
+      Picker("写入方式", selection: $step2MergeMode) {
+        Text("覆盖").tag(Step2MergeMode.replace)
+        Text("合并").tag(Step2MergeMode.merge)
       }
-      .appSecondaryActionButtonStyle()
-      .disabled(isGenerating || document.outline == nil)
+      .pickerStyle(.segmented)
+      .frame(maxWidth: 220)
+      .disabled(isGenerating)
 
       if isGenerating {
         ProgressView()

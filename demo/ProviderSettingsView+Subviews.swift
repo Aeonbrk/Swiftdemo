@@ -239,7 +239,15 @@
         }
 
         if let snapshot {
-          diagnosticsResultView(snapshot.result)
+          diagnosticsSummaryView(snapshot.result)
+
+          DisclosureGroup("诊断详情", isExpanded: diagnosticsDetailsExpandedBinding(for: provider.id)) {
+            diagnosticsDetailView(snapshot.result)
+              .padding(.top, 4)
+          }
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .disabled(isDiagnosing)
         } else {
           Text("尚未执行诊断。点击“测试连接”可快速检查 API Key、网络可达性与响应状态。")
             .font(.caption)
@@ -251,8 +259,23 @@
       .appPanelGlass()
     }
 
+    func diagnosticsDetailsExpandedBinding(for providerID: UUID) -> Binding<Bool> {
+      Binding(
+        get: {
+          expandedDiagnosticsProviderIDs.contains(providerID)
+        },
+        set: { isExpanded in
+          if isExpanded {
+            expandedDiagnosticsProviderIDs.insert(providerID)
+          } else {
+            expandedDiagnosticsProviderIDs.remove(providerID)
+          }
+        }
+      )
+    }
+
     @ViewBuilder
-    func diagnosticsResultView(_ result: ProviderConnectivityResult) -> some View {
+    func diagnosticsSummaryView(_ result: ProviderConnectivityResult) -> some View {
       VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
         HStack(spacing: UIStyle.compactSpacing) {
           Text(diagnosticsStatusTitle(result.status))
@@ -274,7 +297,12 @@
               .foregroundStyle(.secondary)
           }
         }
+      }
+    }
 
+    @ViewBuilder
+    func diagnosticsDetailView(_ result: ProviderConnectivityResult) -> some View {
+      VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
         Text(diagnosticsGuidanceText(result))
           .font(.caption)
           .foregroundStyle(.secondary)
