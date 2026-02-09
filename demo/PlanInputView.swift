@@ -14,6 +14,9 @@ enum PlanInputMainTab: Hashable {
 
 @MainActor
 struct PlanInputView: View {
+  private static let useImmediateUpdatedAtTouch =
+    ProcessInfo.processInfo.environment["DEMO_PERF_USE_IMMEDIATE_UPDATED_AT"] == "1"
+
   @Environment(\.modelContext) var modelContext
   @Query(filter: #Predicate<LLMProvider> { $0.isActive == true }, sort: \LLMProvider.updatedAt, order: .reverse)
   private var activeProviders: [LLMProvider]
@@ -36,6 +39,8 @@ struct PlanInputView: View {
   #if os(macOS)
     @State var selectedRoute: PlanWorkspaceRoute = .input
     @State private var isProviderInspectorVisible = false
+    @State var routeAutomationTask: Task<Void, Never>?
+    @State var performanceAutomationEditCounter: Int = 0
     @FocusState private var isProviderToggleFocused: Bool
   #endif
 
@@ -271,6 +276,11 @@ extension PlanInputView {
   }
 
   private func scheduleDocumentUpdatedAtTouch() {
+    if Self.useImmediateUpdatedAtTouch {
+      flushDocumentUpdatedAtTouch()
+      return
+    }
+
     updatedAtDebounceTask?.cancel()
     updatedAtDebounceTask = Task {
       do {
@@ -311,6 +321,7 @@ extension PlanInputView {
         if activeProviderName == nil {
           isProviderInspectorVisible = true
         }
+        setupRouteAutomationIfNeeded()
       }
       .onChange(of: activeProviderName) { _, newValue in
         if newValue == nil {
@@ -334,6 +345,8 @@ extension PlanInputView {
       }
       .onDisappear {
         flushDocumentUpdatedAtTouch()
+        routeAutomationTask?.cancel()
+        routeAutomationTask = nil
       }
     }
 
@@ -348,6 +361,7 @@ extension PlanInputView {
 
         PlanWorkspaceDetailView(
           selectedRoute: selectedRoute,
+          useLegacyRouteSwitchRendering: Self.useLegacyRouteSwitchRendering,
           inputView: { inputTab },
           previewView: { previewTab },
           cardsView: { cardsTab },

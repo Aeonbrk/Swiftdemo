@@ -10,12 +10,19 @@ import SwiftData
 import SwiftUI
 
 struct ContentView: View {
+  private static let isPerformanceAutomationEnabled =
+    ProcessInfo.processInfo.environment["DEMO_PERF_AUTOMATION"] == "1"
+  private static let automationSwitchIntervalNanoseconds: UInt64 = 300_000_000
+  private static let automationEditIntervalNanoseconds: UInt64 = 500_000_000
+
   @Environment(\.modelContext) private var modelContext
   @Query(sort: \PlanDocument.updatedAt, order: .reverse) private var documents: [PlanDocument]
 
   @State private var selectedDocumentID: UUID?
   @State private var searchText: String = ""
   @State private var isCreateButtonHovered = false
+  @State private var performanceAutomationTask: Task<Void, Never>?
+  @State private var performanceAutomationEditCounter: Int = 0
   @FocusState private var focusedDocumentID: UUID?
   @FocusState private var isCreateButtonFocused: Bool
 
@@ -112,6 +119,14 @@ struct ContentView: View {
       if selectedDocumentID == nil {
         selectedDocumentID = documents.first?.id
       }
+      setupPerformanceAutomationIfNeeded()
+    }
+    .onChange(of: documents.count) { _, _ in
+      setupPerformanceAutomationIfNeeded()
+    }
+    .onDisappear {
+      performanceAutomationTask?.cancel()
+      performanceAutomationTask = nil
     }
   }
 
@@ -119,6 +134,65 @@ struct ContentView: View {
     let document = PlanDocument(title: "新计划", rawInput: "")
     modelContext.insert(document)
     selectedDocumentID = document.id
+  }
+
+  private func setupPerformanceAutomationIfNeeded() {
+    guard Self.isPerformanceAutomationEnabled else { return }
+
+    let minimumDocumentCount = 4
+    let missingDocumentCount = max(0, minimumDocumentCount - documents.count)
+    if missingDocumentCount > 0 {
+      for index in 0..<missingDocumentCount {
+        let document = PlanDocument(
+          title: "Perf Doc \(index + 1)",
+          rawInput: "Benchmark input \(index + 1)"
+        )
+        modelContext.insert(document)
+      }
+    }
+
+    if performanceAutomationTask == nil {
+      performanceAutomationTask = Task { @MainActor in
+        await runPerformanceDocumentSwitchLoop()
+      }
+    }
+  }
+
+  @MainActor
+  private func runPerformanceDocumentSwitchLoop() async {
+    while Task.isCancelled == false {
+      let ids = documents.map(\.id)
+      if ids.isEmpty {
+        return
+      }
+
+      for id in ids {
+        if Task.isCancelled {
+          return
+        }
+
+        selectedDocumentID = id
+        if let currentDocument = selectedDocument {
+          performanceAutomationEditCounter += 1
+          if performanceAutomationEditCounter.isMultiple(of: 2) {
+            currentDocument.title = "Perf Doc \(performanceAutomationEditCounter)"
+          } else {
+            currentDocument.rawInput = "Perf Input \(performanceAutomationEditCounter)"
+          }
+        }
+        do {
+          try await Task.sleep(nanoseconds: Self.automationSwitchIntervalNanoseconds)
+        } catch {
+          return
+        }
+
+        do {
+          try await Task.sleep(nanoseconds: Self.automationEditIntervalNanoseconds)
+        } catch {
+          return
+        }
+      }
+    }
   }
 
   private func deleteFilteredDocuments(at offsets: IndexSet, filteredDocuments: [PlanDocument]) {

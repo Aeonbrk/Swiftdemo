@@ -100,13 +100,14 @@ flowchart LR
 **Key files**：
 | Path Group | Representative Files | Exceptions |
 |------------|----------------------|------------|
-| `demo/PlanInput*.swift` | `demo/PlanInputView.swift`, `demo/PlanInputActions.swift`, `demo/PlanInputTabs.swift`, `demo/PlanInputEditors.swift`, `demo/PlanInputGenerationSupport.swift` | 无 |
+| `demo/PlanInput*.swift` | `demo/PlanInputView.swift`, `demo/PlanInputActions.swift`, `demo/PlanInputTabs.swift`, `demo/PlanInputTabs+Sorting.swift`, `demo/PlanInputEditors.swift`, `demo/PlanInputGenerationSupport.swift`, `demo/PlanInputView+PerformanceAutomation.swift` | 无 |
 | `demo/PlanLayoutComponents.swift` | `demo/PlanLayoutComponents.swift` | 无 |
 | `demo/PlanUIComponents.swift` | `demo/PlanUIComponents.swift` | 无 |
 
 **Gotchas**：
 - Step1/Step2 重新生成会覆盖旧的衍生数据（卡片/待办/主张/引文），不是增量 merge（refs: `demo/PlanInputGenerationSupport.swift:applyStep1Output`, `demo/PlanInputGenerationSupport.swift:applyStep2Output`）。
 - 导出目前依赖 `NSSavePanel`，非 AppKit 路径会落到错误提示分支（refs: `demo/PlanInputActions.swift:PlanInputView.exportTextFile`）。
+- `DEMO_PERF_AUTOMATION` / `DEMO_PERF_USE_LEGACY_ROUTE_SWITCH` / `DEMO_PERF_USE_IMMEDIATE_UPDATED_AT` 仅用于本地 profiling，对业务行为不应作为默认路径依赖（refs: `demo/demoApp.swift:DemoApp.init`, `demo/PlanWorkspaceDetailView.swift:PlanWorkspaceDetailView.body`, `demo/PlanInputView.swift:PlanInputView.scheduleDocumentUpdatedAtTouch`）。
 
 ### demo App 壳层、工作区与 Provider 管理
 
@@ -139,6 +140,7 @@ flowchart LR
 | Path Group | Representative Files | Exceptions |
 |------------|----------------------|------------|
 | `docs/*` | `docs/PROJECT_OVERVIEW.md`, `docs/UI_ARCHITECTURE.md` | `docs/CODEBASE_MAP.md`（本文件） |
+| `docs/perf/*` | `docs/perf/2026-02-09-ui-switching-metrics.md` | 无 |
 | `demo/Assets.xcassets/*` | `demo/Assets.xcassets/Contents.json`, `demo/Assets.xcassets/AppIcon.appiconset/Contents.json`, `demo/Assets.xcassets/AccentColor.colorset/Contents.json` | 无 |
 | `demo.xcodeproj/*` | `demo.xcodeproj/project.pbxproj`, `demo.xcodeproj/project.xcworkspace/contents.xcworkspacedata` | 无 |
 | `scripts/*` | `scripts/launch-mac.sh` | 无 |
@@ -209,4 +211,3 @@ flowchart LR
 | 调整主导航与工作区路由 | `demo/ContentView.swift`, `demo/PlanWorkspaceRoute.swift`, `demo/PlanWorkspaceSidebarView.swift`, `demo/PlanWorkspaceDetailView.swift` |
 | 调整视觉风格（Glass/间距/色彩） | `demo/UIStyle.swift`, `demo/AppGlass+Modifiers.swift`, `demo/PlanLayoutComponents.swift`, `demo/PlanUIComponents.swift` |
 | 本地构建/清理策略 | `scripts/launch-mac.sh`, `README.md`, `demo.xcodeproj/project.pbxproj` |
-

@@ -10,6 +10,7 @@ struct PlanWorkspaceDetailView<
   HistoryView: View
 >: View {
   let selectedRoute: PlanWorkspaceRoute
+  let useLegacyRouteSwitchRendering: Bool
 
   private let inputView: () -> InputView
   private let previewView: () -> PreviewView
@@ -21,6 +22,7 @@ struct PlanWorkspaceDetailView<
 
   init(
     selectedRoute: PlanWorkspaceRoute,
+    useLegacyRouteSwitchRendering: Bool = false,
     @ViewBuilder inputView: @escaping () -> InputView,
     @ViewBuilder previewView: @escaping () -> PreviewView,
     @ViewBuilder cardsView: @escaping () -> CardsView,
@@ -30,6 +32,7 @@ struct PlanWorkspaceDetailView<
     @ViewBuilder historyView: @escaping () -> HistoryView
   ) {
     self.selectedRoute = selectedRoute
+    self.useLegacyRouteSwitchRendering = useLegacyRouteSwitchRendering
     self.inputView = inputView
     self.previewView = previewView
     self.cardsView = cardsView
@@ -58,6 +61,11 @@ struct PlanWorkspaceDetailView<
         historyView()
       }
     }
+    .id(useLegacyRouteSwitchRendering ? selectedRoute : nil)
+    .animation(
+      useLegacyRouteSwitchRendering ? .snappy(duration: 0.2) : nil,
+      value: selectedRoute
+    )
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 }
