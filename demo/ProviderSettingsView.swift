@@ -25,6 +25,7 @@
     @State var diagnosingProviderID: UUID?
     @State var diagnosticsByProviderID: [UUID: ProviderDiagnosticsSnapshot] = [:]
     @State var expandedDiagnosticsProviderIDs: Set<UUID> = []
+    @State var isProviderListExpanded = true
 
     var selectedProvider: LLMProvider? {
       guard let selectedProviderID else { return nil }

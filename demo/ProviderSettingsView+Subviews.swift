@@ -71,12 +71,6 @@
         .appSecondaryActionButtonStyle()
         .help("添加 Provider")
 
-        Button("关闭") {
-          closeView()
-        }
-        .appSecondaryActionButtonStyle()
-        .keyboardShortcut(.cancelAction)
-        .help("关闭 Provider 面板")
       }
       .padding(.horizontal, UIStyle.toolbarHorizontalPadding)
       .padding(.vertical, UIStyle.toolbarVerticalPadding)
@@ -106,26 +100,43 @@
 
     var providerListSection: some View {
       VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
-        HStack {
-          Text("Provider 列表")
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
-          Spacer()
-          Text("\(providers.count) 个")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-
-        ScrollView {
-          LazyVStack(spacing: UIStyle.compactSpacing) {
-            ForEach(providers, id: \.id) { provider in
-              providerRow(provider)
-            }
+        Button {
+          withAnimation(.snappy(duration: 0.2)) {
+            isProviderListExpanded.toggle()
           }
-          .padding(4)
+        } label: {
+          HStack {
+            Text("Provider 列表")
+              .font(.subheadline.weight(.semibold))
+              .foregroundStyle(.secondary)
+
+            Spacer()
+
+            Text("\(providers.count) 个")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+
+            Image(systemName: isProviderListExpanded ? "chevron.up" : "chevron.down")
+              .font(.caption.weight(.semibold))
+              .foregroundStyle(.secondary)
+          }
         }
-        .frame(maxHeight: isEmbedded ? 210 : 280)
-        .appListContainerGlass()
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .help(isProviderListExpanded ? "收起 Provider 列表" : "展开 Provider 列表")
+
+        if isProviderListExpanded {
+          ScrollView {
+            LazyVStack(spacing: UIStyle.compactSpacing) {
+              ForEach(providers, id: \.id) { provider in
+                providerRow(provider)
+              }
+            }
+            .padding(4)
+          }
+          .frame(maxHeight: isEmbedded ? 210 : 280)
+          .appListContainerGlass()
+        }
       }
     }
 
@@ -189,17 +200,13 @@
     @ViewBuilder
     var detailSection: some View {
       if let provider = selectedProvider {
-        VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
-          ProviderEditorView(
-            provider: provider,
-            newAPIKey: $newAPIKey,
-            message: $message,
-            isCompact: isEmbedded
-          )
-          .frame(maxWidth: .infinity, alignment: .topLeading)
-
-          diagnosticsSection(for: provider)
-        }
+        ProviderEditorView(
+          provider: provider,
+          newAPIKey: $newAPIKey,
+          message: $message,
+          isCompact: isEmbedded,
+          embeddedDiagnosticsSection: AnyView(diagnosticsSection(for: provider))
+        )
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
       } else {
         ContentUnavailableView("请选择一个 Provider", systemImage: "key")
@@ -214,9 +221,9 @@
       let isDiagnosing = diagnosingProviderID == provider.id
 
       return VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
-        HStack {
+        HStack(alignment: .center) {
           Text("连通性诊断")
-            .font(.headline)
+            .font(.subheadline.weight(.semibold))
           Spacer()
           if let snapshot {
             Text(snapshot.checkedAt, style: .time)
@@ -254,9 +261,7 @@
             .foregroundStyle(.secondary)
         }
       }
-      .padding(UIStyle.panelInnerPadding)
       .frame(maxWidth: .infinity, alignment: .leading)
-      .appPanelGlass()
     }
 
     func diagnosticsDetailsExpandedBinding(for providerID: UUID) -> Binding<Bool> {

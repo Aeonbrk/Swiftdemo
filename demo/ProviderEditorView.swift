@@ -13,6 +13,7 @@
     @Binding var message: String?
 
     let isCompact: Bool
+    let embeddedDiagnosticsSection: AnyView?
 
     @State private var isExtraHeadersExpanded = false
 
@@ -29,6 +30,20 @@
 
     private var detailEditorMinHeight: CGFloat {
       isCompact ? 180 : 240
+    }
+
+    init(
+      provider: LLMProvider,
+      newAPIKey: Binding<String>,
+      message: Binding<String?>,
+      isCompact: Bool,
+      embeddedDiagnosticsSection: AnyView? = nil
+    ) {
+      self.provider = provider
+      _newAPIKey = newAPIKey
+      _message = message
+      self.isCompact = isCompact
+      self.embeddedDiagnosticsSection = embeddedDiagnosticsSection
     }
 
     var body: some View {
@@ -91,6 +106,11 @@
               .scrollContentBackground(.hidden)
               .frame(minHeight: textEditorMinHeight)
               .appFieldSurface(.field)
+          }
+
+          if let embeddedDiagnosticsSection {
+            Divider()
+            embeddedDiagnosticsSection
           }
         }
       }
