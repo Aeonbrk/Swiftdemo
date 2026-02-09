@@ -38,7 +38,7 @@
       let hasActiveProvider = providers.contains(where: { $0.isActive })
       let result = insertMissingDefaultProviders(
         existingKeys: &existing,
-        shouldActivateFirst: hasActiveProvider == false
+        shouldActivateFirst: !hasActiveProvider
       )
 
       if result.didInsertAny {
@@ -51,7 +51,7 @@
         return
       }
 
-      if hasActiveProvider == false, let candidateID = selectedProviderID ?? providers.first?.id {
+      if !hasActiveProvider, let candidateID = selectedProviderID ?? providers.first?.id {
         setActiveProviderID(candidateID)
         message = "默认 Provider 已存在，已设为激活。"
         return
@@ -165,7 +165,7 @@
 
       for preset in LLMProviderPreset.all {
         let key = providerKey(name: preset.name, baseURL: preset.baseURL, model: preset.model)
-        guard existingKeys.contains(key) == false else { continue }
+        guard !existingKeys.contains(key) else { continue }
 
         existingKeys.insert(key)
 
@@ -239,7 +239,7 @@
         return nil
       }
 
-      guard apiKey.isEmpty == false else {
+      guard !apiKey.isEmpty else {
         recordConfigurationDiagnostics(
           providerID: providerID,
           message: "Provider '\(provider.name)' 缺少 API Key，请先保存。"

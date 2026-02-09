@@ -266,7 +266,7 @@ extension PlanInputView {
     remoteRecord: ExternalTaskRecord,
     resolution: SyncConflictResolution
   ) -> Bool {
-    if resolution.requiresManualReview == false {
+    if !resolution.requiresManualReview {
       return false
     }
     enqueuePendingSyncReview(

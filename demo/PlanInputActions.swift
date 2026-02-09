@@ -54,7 +54,7 @@ extension PlanInputView {
     }
 
     if let selectedCardID,
-      document.flashcards.contains(where: { $0.id == selectedCardID }) == false {
+      !document.flashcards.contains(where: { $0.id == selectedCardID }) {
       self.selectedCardID = document.flashcards.first?.id
     }
     document.updatedAt = .now
@@ -102,7 +102,7 @@ extension PlanInputView {
     }
 
     if let selectedTodoID,
-      document.todos.contains(where: { $0.id == selectedTodoID }) == false {
+      !document.todos.contains(where: { $0.id == selectedTodoID }) {
       self.selectedTodoID = document.todos.first?.id
     }
     document.updatedAt = .now
@@ -362,22 +362,22 @@ extension PlanInputView {
         account: provider.apiKeyKeychainAccount
       ) ?? ""
 
-      guard apiKey.isEmpty == false else {
-          failGeneration(
-            promptVersion: promptVersion,
-            provider: provider,
-            message: "Provider '\(provider.name)' 缺少 API Key，请先在 Provider 设置中保存。"
-          )
+      guard !apiKey.isEmpty else {
+        failGeneration(
+          promptVersion: promptVersion,
+          provider: provider,
+          message: "Provider '\(provider.name)' 缺少 API Key，请先在 Provider 设置中保存。"
+        )
         return nil
       }
 
       return apiKey
     } catch {
-        failGeneration(
-          promptVersion: promptVersion,
-          provider: provider,
-          message: "读取 API Key 失败：\(error)"
-        )
+      failGeneration(
+        promptVersion: promptVersion,
+        provider: provider,
+        message: "读取 API Key 失败：\(error)"
+      )
       return nil
     }
   }

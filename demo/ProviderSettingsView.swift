@@ -71,7 +71,7 @@
         isPresented: Binding(
           get: { providerIDPendingDelete != nil },
           set: { isPresented in
-            if isPresented == false {
+            if !isPresented {
               providerIDPendingDelete = nil
             }
           }

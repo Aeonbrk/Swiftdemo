@@ -44,9 +44,10 @@ extension PlanInputView {
     let linkedClaims = executionLinkedClaims(for: todo, evidenceLookup: evidenceLookup)
     let linkedCitations = executionLinkedCitations(for: todo, evidenceLookup: evidenceLookup)
     let missingEvidenceCount = executionMissingEvidenceCount(for: todo, evidenceLookup: evidenceLookup)
+    let hasLinkedEvidence = !linkedClaims.isEmpty || !linkedCitations.isEmpty
 
     return Group {
-      if linkedClaims.isEmpty == false || linkedCitations.isEmpty == false || missingEvidenceCount > 0 {
+      if hasLinkedEvidence || missingEvidenceCount > 0 {
         VStack(alignment: .leading, spacing: 8) {
           executionEvidenceHeader(
             todo: todo,
@@ -56,7 +57,7 @@ extension PlanInputView {
           executionClaimsPreview(linkedClaims)
           executionCitationsPreview(linkedCitations)
           executionEvidenceFooter(
-            hasCitations: linkedCitations.isEmpty == false,
+            hasCitations: !linkedCitations.isEmpty,
             missingEvidenceCount: missingEvidenceCount
           )
         }
@@ -90,7 +91,7 @@ extension PlanInputView {
 
   @ViewBuilder
   private func executionClaimsPreview(_ linkedClaims: [Claim]) -> some View {
-    if linkedClaims.isEmpty == false {
+    if !linkedClaims.isEmpty {
       VStack(alignment: .leading, spacing: 4) {
         ForEach(Array(linkedClaims.prefix(2)), id: \.id) { claim in
           Text("• \(claim.text.isEmpty ? "（空主张）" : claim.text)")
@@ -110,10 +111,10 @@ extension PlanInputView {
 
   @ViewBuilder
   private func executionCitationsPreview(_ linkedCitations: [Citation]) -> some View {
-    if linkedCitations.isEmpty == false {
+    if !linkedCitations.isEmpty {
       VStack(alignment: .leading, spacing: 4) {
         ForEach(Array(linkedCitations.prefix(2)), id: \.id) { citation in
-          if let url = URL(string: citation.url), citation.url.isEmpty == false {
+          if !citation.url.isEmpty, let url = URL(string: citation.url) {
             Link(destination: url) {
               Label(executionCitationTitle(citation), systemImage: "link")
                 .font(.caption2)
@@ -179,10 +180,10 @@ extension PlanInputView {
   }
 
   private func executionCitationTitle(_ citation: Citation) -> String {
-    if let title = citation.title?.trimmingCharacters(in: .whitespacesAndNewlines), title.isEmpty == false {
+    if let title = citation.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
       return title
     }
-    if citation.url.isEmpty == false {
+    if !citation.url.isEmpty {
       return citation.url
     }
     return "（未命名引用）"

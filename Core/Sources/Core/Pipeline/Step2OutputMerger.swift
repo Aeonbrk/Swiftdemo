@@ -26,30 +26,36 @@ public enum Step2OutputMerger {
     existing: [Step2Output.Flashcard],
     incoming: [Step2Output.Flashcard]
   ) -> [Step2Output.Flashcard] {
-    var merged = existing
-    var seen = Set(existing.map(flashcardKey))
-
-    for card in incoming {
-      let key = flashcardKey(card)
-      if seen.insert(key).inserted {
-        merged.append(card)
-      }
-    }
-
-    return merged
+    mergeDeduplicated(
+      existing: existing,
+      incoming: incoming,
+      keySelector: flashcardKey
+    )
   }
 
   private static func mergeTodos(
     existing: [Step2Output.Todo],
     incoming: [Step2Output.Todo]
   ) -> [Step2Output.Todo] {
-    var merged = existing
-    var seen = Set(existing.map(todoKey))
+    mergeDeduplicated(
+      existing: existing,
+      incoming: incoming,
+      keySelector: todoKey
+    )
+  }
 
-    for todo in incoming {
-      let key = todoKey(todo)
-      if seen.insert(key).inserted {
-        merged.append(todo)
+  private static func mergeDeduplicated<Item>(
+    existing: [Item],
+    incoming: [Item],
+    keySelector: (Item) -> String
+  ) -> [Item] {
+    var merged = existing
+    var seenKeys = Set(existing.map(keySelector))
+
+    for item in incoming {
+      let key = keySelector(item)
+      if seenKeys.insert(key).inserted {
+        merged.append(item)
       }
     }
 

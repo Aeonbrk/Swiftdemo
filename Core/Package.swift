@@ -3,6 +3,10 @@
 
 import PackageDescription
 
+private let swiftDataLinkerSettings: [LinkerSetting] = [
+  .linkedFramework("SwiftData")
+]
+
 let package = Package(
   name: "Core",
   platforms: [
@@ -11,27 +15,20 @@ let package = Package(
     .visionOS(.v1),
   ],
   products: [
-    // Products define the executables and libraries a package produces, making them visible to other packages.
     .library(
       name: "Core",
       targets: ["Core"]
     )
   ],
   targets: [
-    // Targets are the basic building blocks of a package, defining a module or a test suite.
-    // Targets can depend on other targets in this package and products from dependencies.
     .target(
       name: "Core",
-      linkerSettings: [
-        .linkedFramework("SwiftData")
-      ]
+      linkerSettings: swiftDataLinkerSettings
     ),
     .testTarget(
       name: "CoreTests",
       dependencies: ["Core"],
-      linkerSettings: [
-        .linkedFramework("SwiftData")
-      ]
+      linkerSettings: swiftDataLinkerSettings
     ),
   ]
 )

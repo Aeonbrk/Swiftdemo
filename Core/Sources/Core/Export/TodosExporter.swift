@@ -1,69 +1,94 @@
 import Foundation
 
 public enum TodosExporter {
+  private static let legacyHeader =
+    "Title,Detail,EstimatedMinutes,Frequency,Status,ScheduledAt,DueAt\n"
+  private static let extendedHeader =
+    "Title,Detail,EstimatedMinutes,Frequency,Status,ScheduledAt,DueAt,Priority,CompletedAt,CreatedAt,UpdatedAt\n"
+
   public static func csv(todos: [TodoItem]) -> String {
-    var lines: [String] = ["Title,Detail,EstimatedMinutes,Frequency,Status,ScheduledAt,DueAt\n"]
+    guard todos.isEmpty == false else {
+      return legacyHeader
+    }
+
+    var lines: [String] = [legacyHeader]
     lines.reserveCapacity(todos.count + 1)
 
     for todo in todos {
-      let title = csvField(todo.title)
-      let detail = csvField(todo.detail)
-      let estimated = todo.estimatedMinutes.map(String.init) ?? ""
-      let frequency = csvField(todo.frequencyRaw)
-      let status = csvField(todo.statusRaw)
-      let scheduledAt = todo.scheduledAt.map { $0.ISO8601Format() } ?? ""
-      let dueAt = todo.dueAt.map { $0.ISO8601Format() } ?? ""
-
-      lines.append(
-        "\(title),\(detail),\(estimated),\(frequency),\(status),\(scheduledAt),\(dueAt)\n")
+      lines.append(legacyCSVRow(for: todo))
     }
 
     return lines.joined()
   }
 
   public static func csvExtended(todos: [TodoItem]) -> String {
-    var lines: [String] = [
-      "Title,Detail,EstimatedMinutes,Frequency,Status,ScheduledAt,DueAt,Priority,CompletedAt,CreatedAt,UpdatedAt\n"
-    ]
+    guard todos.isEmpty == false else {
+      return extendedHeader
+    }
+
+    var lines: [String] = [extendedHeader]
     lines.reserveCapacity(todos.count + 1)
 
     for todo in todos {
-      let title = csvField(todo.title)
-      let detail = csvField(todo.detail)
-      let estimated = todo.estimatedMinutes.map(String.init) ?? ""
-      let frequency = csvField(todo.frequencyRaw)
-      let status = csvField(todo.status.rawValue)
-      let scheduledAt = todo.scheduledAt.map { $0.ISO8601Format() } ?? ""
-      let dueAt = todo.dueAt.map { $0.ISO8601Format() } ?? ""
-      let priority = csvField(todo.priority.rawValue)
-      let completedAt = todo.completedAt.map { $0.ISO8601Format() } ?? ""
-      let createdAt = todo.createdAt.ISO8601Format()
-      let updatedAt = todo.updatedAt.ISO8601Format()
-
-      lines.append(
-        "\(title),\(detail),\(estimated),\(frequency),\(status),\(scheduledAt),\(dueAt),\(priority),"
-          + "\(completedAt),\(createdAt),\(updatedAt)\n"
-      )
+      lines.append(extendedCSVRow(for: todo))
     }
 
     return lines.joined()
   }
 
-  private static func csvField(_ value: String) -> String {
-    let sanitized = sanitizeField(value)
-    let needsQuotes =
-      sanitized.contains(",") || sanitized.contains("\"") || sanitized.contains("\n")
-      || sanitized.contains("\r")
+  private static func legacyCSVRow(for todo: TodoItem) -> String {
+    let title = csvField(todo.title)
+    let detail = csvField(todo.detail)
+    let estimated = intString(todo.estimatedMinutes)
+    let frequency = csvField(todo.frequencyRaw)
+    let status = csvField(todo.statusRaw)
+    let scheduledAt = iso8601(todo.scheduledAt)
+    let dueAt = iso8601(todo.dueAt)
 
-    if needsQuotes == false {
-      return sanitized
-    }
-
-    let escaped = sanitized.replacingOccurrences(of: "\"", with: "\"\"")
-    return "\"\(escaped)\""
+    return "\(title),\(detail),\(estimated),\(frequency),\(status),\(scheduledAt),\(dueAt)\n"
   }
 
-  private static func sanitizeField(_ value: String) -> String {
+  private static func extendedCSVRow(for todo: TodoItem) -> String {
+    let title = csvField(todo.title)
+    let detail = csvField(todo.detail)
+    let estimated = intString(todo.estimatedMinutes)
+    let frequency = csvField(todo.frequencyRaw)
+    let status = csvField(todo.status.rawValue)
+    let scheduledAt = iso8601(todo.scheduledAt)
+    let dueAt = iso8601(todo.dueAt)
+    let priority = csvField(todo.priority.rawValue)
+    let completedAt = iso8601(todo.completedAt)
+    let createdAt = todo.createdAt.ISO8601Format()
+    let updatedAt = todo.updatedAt.ISO8601Format()
+
+    return
+      "\(title),\(detail),\(estimated),\(frequency),\(status),\(scheduledAt),\(dueAt),\(priority),"
+      + "\(completedAt),\(createdAt),\(updatedAt)\n"
+  }
+
+  private static func intString(_ value: Int?) -> String {
+    value.map(String.init) ?? ""
+  }
+
+  private static func iso8601(_ value: Date?) -> String {
+    value.map { $0.ISO8601Format() } ?? ""
+  }
+
+  private static func csvField(_ value: String) -> String {
+    let sanitizedValue = sanitizeCSVField(value)
+    guard requiresQuotes(in: sanitizedValue) else {
+      return sanitizedValue
+    }
+
+    let escapedValue = sanitizedValue.replacingOccurrences(of: "\"", with: "\"\"")
+    return "\"\(escapedValue)\""
+  }
+
+  private static func requiresQuotes(in value: String) -> Bool {
+    value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r")
+  }
+
+  private static func sanitizeCSVField(_ value: String) -> String {
     value
       .replacingOccurrences(of: "\r\n", with: "\n")
       .replacingOccurrences(of: "\r", with: "\n")

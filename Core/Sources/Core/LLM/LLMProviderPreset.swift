@@ -51,12 +51,7 @@ extension LLMProviderPreset {
     name: "Claude (OpenRouter)",
     baseURL: "https://openrouter.ai/api/v1",
     model: "anthropic/claude-3.5-sonnet",
-    extraHeadersJSON: """
-      {
-        "HTTP-Referer": "https://example.com",
-        "X-Title": "Learning Plan"
-      }
-      """
+    extraHeadersJSON: openRouterExtraHeadersJSON
   )
 
   public static let geminiOpenRouter = LLMProviderPreset(
@@ -64,12 +59,7 @@ extension LLMProviderPreset {
     name: "Gemini (OpenRouter)",
     baseURL: "https://openrouter.ai/api/v1",
     model: "google/gemini-1.5-pro",
-    extraHeadersJSON: """
-      {
-        "HTTP-Referer": "https://example.com",
-        "X-Title": "Learning Plan"
-      }
-      """
+    extraHeadersJSON: openRouterExtraHeadersJSON
   )
 
   public static let all: [LLMProviderPreset] = [
@@ -78,4 +68,11 @@ extension LLMProviderPreset {
     .claudeOpenRouter,
     .geminiOpenRouter
   ]
+
+  private static let openRouterExtraHeadersJSON = """
+    {
+      "HTTP-Referer": "https://example.com",
+      "X-Title": "Learning Plan"
+    }
+    """
 }

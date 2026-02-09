@@ -233,7 +233,7 @@ private func isSandboxNetworkDenied(_ error: NSError) -> Bool {
 
 private func normalizedTodoStatusRaw(_ raw: String?) -> String {
   guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
-    raw.isEmpty == false else {
+    !raw.isEmpty else {
     return TodoStatus.todo.rawValue
   }
   return TodoStatus(rawValue: raw)?.rawValue ?? TodoStatus.todo.rawValue
@@ -241,7 +241,7 @@ private func normalizedTodoStatusRaw(_ raw: String?) -> String {
 
 private func normalizedTodoPriorityRaw(_ raw: String?) -> String {
   guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
-    raw.isEmpty == false else {
+    !raw.isEmpty else {
     return TodoPriority.medium.rawValue
   }
   return TodoPriority(rawValue: raw)?.rawValue ?? TodoPriority.medium.rawValue
@@ -256,7 +256,7 @@ private func normalizedFrequencyRaw(_ raw: String) -> String {
 }
 
 private func parseISO8601Date(_ raw: String?) -> Date? {
-  guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), raw.isEmpty == false else {
+  guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
     return nil
   }
 

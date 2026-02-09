@@ -10,19 +10,18 @@
     static let automationRouteSwitchIntervalNanoseconds: UInt64 = 200_000_000
     func setupRouteAutomationIfNeeded() {
       guard Self.isPerformanceAutomationEnabled else { return }
-      if routeAutomationTask == nil {
-        routeAutomationTask = Task { @MainActor in
-          await runRouteAutomationLoop()
-        }
+      guard routeAutomationTask == nil else { return }
+      routeAutomationTask = Task { @MainActor in
+        await runRouteAutomationLoop()
       }
     }
 
     @MainActor
     func runRouteAutomationLoop() async {
       let routes = PlanWorkspaceRoute.allCases
-      guard routes.isEmpty == false else { return }
+      guard !routes.isEmpty else { return }
 
-      while Task.isCancelled == false {
+      while !Task.isCancelled {
         for route in routes {
           if Task.isCancelled {
             return

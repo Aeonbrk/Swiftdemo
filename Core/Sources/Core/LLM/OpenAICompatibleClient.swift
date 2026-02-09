@@ -2,8 +2,8 @@ import Foundation
 
 public struct OpenAICompatibleClient {
   public struct HTTPError: Error {
-    public var statusCode: Int
-    public var body: String
+    public let statusCode: Int
+    public let body: String
 
     public init(statusCode: Int, body: String) {
       self.statusCode = statusCode
@@ -32,35 +32,68 @@ public struct OpenAICompatibleClient {
     model: String,
     messages: [OpenAIChatMessage]
   ) async throws -> String {
-    let endpoint = baseURL.appendingPathComponent("chat/completions")
+    let request = try makeChatCompletionsRequest(model: model, messages: messages)
 
+    let (data, response) = try await urlSession.data(for: request)
+    try validate(response: response, data: data)
+    return try decodeAssistantContent(from: data)
+  }
+
+  private func makeChatCompletionsRequest(
+    model: String,
+    messages: [OpenAIChatMessage]
+  ) throws -> URLRequest {
+    let endpoint = baseURL.appendingPathComponent(Endpoint.chatCompletions)
     var request = URLRequest(url: endpoint)
-    request.httpMethod = "POST"
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+    request.httpMethod = HTTPMethod.post
+    request.setValue(ContentType.json, forHTTPHeaderField: HeaderField.contentType)
+    request.setValue("Bearer \(apiKey)", forHTTPHeaderField: HeaderField.authorization)
+
     for (key, value) in extraHeaders {
       request.setValue(value, forHTTPHeaderField: key)
     }
 
-    let payload = ChatCompletionsRequest(model: model, messages: messages)
-    request.httpBody = try JSONEncoder().encode(payload)
+    request.httpBody = try JSONEncoder().encode(
+      ChatCompletionsRequest(model: model, messages: messages)
+    )
+    return request
+  }
 
-    let (data, response) = try await urlSession.data(for: request)
+  private func validate(response: URLResponse, data: Data) throws {
     guard let http = response as? HTTPURLResponse else {
       throw URLError(.badServerResponse)
     }
 
-    if (200..<300).contains(http.statusCode) == false {
-      let body = String(data: data, encoding: .utf8) ?? ""
+    guard (200..<300).contains(http.statusCode) else {
+      let body = String(bytes: data, encoding: .utf8) ?? ""
       throw HTTPError(statusCode: http.statusCode, body: body)
     }
+  }
 
+  private func decodeAssistantContent(from data: Data) throws -> String {
     let decoded = try JSONDecoder().decode(ChatCompletionsResponse.self, from: data)
     guard let content = decoded.choices.first?.message.content, content.isEmpty == false else {
       throw URLError(.cannotParseResponse)
     }
     return content
   }
+}
+
+private enum Endpoint {
+  static let chatCompletions = "chat/completions"
+}
+
+private enum HTTPMethod {
+  static let post = "POST"
+}
+
+private enum HeaderField {
+  static let contentType = "Content-Type"
+  static let authorization = "Authorization"
+}
+
+private enum ContentType {
+  static let json = "application/json"
 }
 
 private struct ChatCompletionsRequest: Encodable {

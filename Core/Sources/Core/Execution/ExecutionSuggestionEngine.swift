@@ -17,7 +17,12 @@ private struct SuggestionScorePart {
   let reasons: [String]
 }
 
+private typealias RecommendationCandidate = (todo: TodoItem, recommendation: TodoRecommendation)
+
 public enum ExecutionSuggestionEngine {
+  private static let noScorePart = SuggestionScorePart(score: 0, reasons: [])
+  private static let dueSoonWindow: TimeInterval = 2 * 24 * 60 * 60
+
   public static func recommendations(
     for todos: [TodoItem],
     now: Date = .now,
@@ -27,38 +32,40 @@ public enum ExecutionSuggestionEngine {
 
     let candidates = todos
       .filter { isActionable($0) }
-      .map { todo -> (todo: TodoItem, recommendation: TodoRecommendation) in
+      .map { todo -> RecommendationCandidate in
         let result = score(todo, now: now)
         return (
           todo: todo,
           recommendation: TodoRecommendation(todoID: todo.id, score: result.score, reasons: result.reasons)
         )
       }
-      .sorted { lhs, rhs in
-        if lhs.recommendation.score != rhs.recommendation.score {
-          return lhs.recommendation.score > rhs.recommendation.score
-        }
-
-        let lhsDate = dueOrScheduleDate(for: lhs.todo)
-        let rhsDate = dueOrScheduleDate(for: rhs.todo)
-        if lhsDate != rhsDate {
-          return lhsDate < rhsDate
-        }
-
-        let lhsPriority = priorityRank(lhs.todo.priority)
-        let rhsPriority = priorityRank(rhs.todo.priority)
-        if lhsPriority != rhsPriority {
-          return lhsPriority > rhsPriority
-        }
-
-        if lhs.todo.createdAt != rhs.todo.createdAt {
-          return lhs.todo.createdAt < rhs.todo.createdAt
-        }
-
-        return lhs.todo.id.uuidString < rhs.todo.id.uuidString
-      }
+      .sorted(by: compareCandidates)
 
     return candidates.prefix(limit).map(\.recommendation)
+  }
+
+  private static func compareCandidates(_ lhs: RecommendationCandidate, _ rhs: RecommendationCandidate) -> Bool {
+    if lhs.recommendation.score != rhs.recommendation.score {
+      return lhs.recommendation.score > rhs.recommendation.score
+    }
+
+    let lhsDate = dueOrScheduleDate(for: lhs.todo)
+    let rhsDate = dueOrScheduleDate(for: rhs.todo)
+    if lhsDate != rhsDate {
+      return lhsDate < rhsDate
+    }
+
+    let lhsPriority = priorityRank(lhs.todo.priority)
+    let rhsPriority = priorityRank(rhs.todo.priority)
+    if lhsPriority != rhsPriority {
+      return lhsPriority > rhsPriority
+    }
+
+    if lhs.todo.createdAt != rhs.todo.createdAt {
+      return lhs.todo.createdAt < rhs.todo.createdAt
+    }
+
+    return lhs.todo.id.uuidString < rhs.todo.id.uuidString
   }
 
   private static func score(_ todo: TodoItem, now: Date) -> (score: Int, reasons: [String]) {
@@ -97,7 +104,7 @@ public enum ExecutionSuggestionEngine {
 
   private static func duePart(for todo: TodoItem, now: Date) -> SuggestionScorePart {
     guard let dueAt = todo.dueAt else {
-      return SuggestionScorePart(score: 0, reasons: [])
+      return noScorePart
     }
 
     let calendar = Calendar.current
@@ -108,16 +115,16 @@ public enum ExecutionSuggestionEngine {
     if calendar.isDateInToday(dueAt) {
       return SuggestionScorePart(score: 40, reasons: ["due_today"])
     }
-    if dueAt < now.addingTimeInterval(2 * 24 * 60 * 60) {
+    if dueAt < now.addingTimeInterval(dueSoonWindow) {
       return SuggestionScorePart(score: 20, reasons: ["due_soon"])
     }
 
-    return SuggestionScorePart(score: 0, reasons: [])
+    return noScorePart
   }
 
   private static func scheduledPart(for todo: TodoItem, now: Date) -> SuggestionScorePart {
     guard let scheduledAt = todo.scheduledAt, Calendar.current.isDateInToday(scheduledAt) else {
-      return SuggestionScorePart(score: 0, reasons: [])
+      return noScorePart
     }
 
     return SuggestionScorePart(score: 15, reasons: ["scheduled_today"])
@@ -125,7 +132,7 @@ public enum ExecutionSuggestionEngine {
 
   private static func effortPart(for todo: TodoItem) -> SuggestionScorePart {
     guard let estimatedMinutes = todo.estimatedMinutes else {
-      return SuggestionScorePart(score: 0, reasons: [])
+      return noScorePart
     }
     if estimatedMinutes <= 30 {
       return SuggestionScorePart(score: 20, reasons: ["quick_win"])
@@ -137,15 +144,13 @@ public enum ExecutionSuggestionEngine {
       return SuggestionScorePart(score: -10, reasons: ["heavy_effort"])
     }
 
-    return SuggestionScorePart(score: 0, reasons: [])
+    return noScorePart
   }
 
   private static func unscheduledPart(for todo: TodoItem) -> SuggestionScorePart {
-    if todo.dueAt == nil && todo.scheduledAt == nil {
-      return SuggestionScorePart(score: -5, reasons: ["unscheduled"])
-    }
+    guard todo.dueAt == nil && todo.scheduledAt == nil else { return noScorePart }
 
-    return SuggestionScorePart(score: 0, reasons: [])
+    return SuggestionScorePart(score: -5, reasons: ["unscheduled"])
   }
 
   private static func combine(_ parts: [SuggestionScorePart]) -> (score: Int, reasons: [String]) {
@@ -155,9 +160,9 @@ public enum ExecutionSuggestionEngine {
   }
 
   private static func isActionable(_ todo: TodoItem) -> Bool {
-    if todo.status == .done { return false }
-    if todo.completedAt != nil { return false }
-    if todo.status == .blocked { return false }
+    guard todo.status != .done, todo.completedAt == nil, todo.status != .blocked else {
+      return false
+    }
     return true
   }
 

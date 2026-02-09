@@ -14,6 +14,12 @@ public enum TodoPriority: String, CaseIterable, Sendable {
   case high
 }
 
+private enum TodoItemDefaults {
+  static let status: TodoStatus = .todo
+  static let priority: TodoPriority = .medium
+  static let frequencyRaw = "once"
+}
+
 @Model
 public final class TodoItem {
   @Attribute(.unique)
@@ -43,23 +49,23 @@ public final class TodoItem {
   public var document: PlanDocument?
 
   public var status: TodoStatus {
-    get { TodoStatus(rawValue: statusRaw) ?? .todo }
+    get { Self.decodeStatus(from: statusRaw) }
     set { statusRaw = newValue.rawValue }
   }
 
   public var priority: TodoPriority {
-    get { TodoPriority(rawValue: priorityRaw ?? "") ?? .medium }
+    get { Self.decodePriority(from: priorityRaw) }
     set { priorityRaw = newValue.rawValue }
   }
 
   public var linkedClaimIDs: [String] {
-    get { Self.parseIDList(from: linkedClaimIDsRaw) }
-    set { linkedClaimIDsRaw = Self.encodeIDList(newValue) }
+    get { Self.decodeIDList(from: linkedClaimIDsRaw) }
+    set { linkedClaimIDsRaw = Self.encodeIDList(from: newValue) }
   }
 
   public var linkedCitationIDs: [String] {
-    get { Self.parseIDList(from: linkedCitationIDsRaw) }
-    set { linkedCitationIDsRaw = Self.encodeIDList(newValue) }
+    get { Self.decodeIDList(from: linkedCitationIDsRaw) }
+    set { linkedCitationIDsRaw = Self.encodeIDList(from: newValue) }
   }
 
   public init(
@@ -99,15 +105,64 @@ public final class TodoItem {
     self.updatedAt = updatedAt
   }
 
-  private static func parseIDList(from raw: String) -> [String] {
-    normalizedIDs(raw.split(separator: ",").map { String($0) })
+  public convenience init(
+    title: String,
+    detail: String,
+    estimatedMinutes: Int? = nil,
+    status: TodoStatus,
+    priority: TodoPriority? = nil,
+    frequencyRaw: String = "once",
+    scheduledAt: Date? = nil,
+    dueAt: Date? = nil,
+    completedAt: Date? = nil,
+    externalSyncSourceRaw: String? = nil,
+    externalSyncID: String? = nil,
+    externalSyncUpdatedAt: Date? = nil,
+    linkedClaimIDsRaw: String = "",
+    linkedCitationIDsRaw: String = "",
+    createdAt: Date = .now,
+    updatedAt: Date = .now
+  ) {
+    self.init(
+      title: title,
+      detail: detail,
+      estimatedMinutes: estimatedMinutes,
+      statusRaw: status.rawValue,
+      priorityRaw: priority?.rawValue,
+      frequencyRaw: frequencyRaw,
+      scheduledAt: scheduledAt,
+      dueAt: dueAt,
+      completedAt: completedAt,
+      externalSyncSourceRaw: externalSyncSourceRaw,
+      externalSyncID: externalSyncID,
+      externalSyncUpdatedAt: externalSyncUpdatedAt,
+      linkedClaimIDsRaw: linkedClaimIDsRaw,
+      linkedCitationIDsRaw: linkedCitationIDsRaw,
+      createdAt: createdAt,
+      updatedAt: updatedAt
+    )
   }
 
-  private static func encodeIDList(_ ids: [String]) -> String {
-    normalizedIDs(ids).joined(separator: ",")
+  private static func decodeStatus(from raw: String) -> TodoStatus {
+    TodoStatus(rawValue: raw) ?? TodoItemDefaults.status
   }
 
-  private static func normalizedIDs(_ ids: [String]) -> [String] {
+  private static func decodePriority(from raw: String?) -> TodoPriority {
+    guard let raw, raw.isEmpty == false else {
+      return TodoItemDefaults.priority
+    }
+    return TodoPriority(rawValue: raw) ?? TodoItemDefaults.priority
+  }
+
+  private static func decodeIDList(from raw: String) -> [String] {
+    normalizedUniqueIDs(raw.split(separator: ",").map { String($0) })
+  }
+
+  private static func encodeIDList(from ids: [String]) -> String {
+    normalizedUniqueIDs(ids).joined(separator: ",")
+  }
+
+  private static func normalizedUniqueIDs(_ ids: [String]) -> [String] {
     Array(
       Set(
         ids.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }

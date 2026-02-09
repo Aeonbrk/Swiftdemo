@@ -45,7 +45,7 @@
     private func truncatedFailureMessage(for result: ProviderConnectivityResult) -> String? {
       guard result.status != .healthy,
         let message = result.message?.trimmingCharacters(in: .whitespacesAndNewlines),
-        message.isEmpty == false
+        !message.isEmpty
       else {
         return nil
       }

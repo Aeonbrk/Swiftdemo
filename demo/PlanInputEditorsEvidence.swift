@@ -26,7 +26,7 @@ extension PlanInputView {
 
   @ViewBuilder
   private func todoEvidenceClaimsSection(for todo: TodoItem) -> some View {
-    if document.claims.isEmpty == false {
+    if !document.claims.isEmpty {
       VStack(alignment: .leading, spacing: 8) {
         Text("主张")
           .font(.subheadline.weight(.semibold))
@@ -43,7 +43,7 @@ extension PlanInputView {
 
   @ViewBuilder
   private func todoEvidenceCitationsSection(for todo: TodoItem) -> some View {
-    if document.citations.isEmpty == false {
+    if !document.citations.isEmpty {
       VStack(alignment: .leading, spacing: 8) {
         Text("引用")
           .font(.subheadline.weight(.semibold))
@@ -62,7 +62,7 @@ extension PlanInputView {
   private func todoEvidenceStaleSection(for todo: TodoItem) -> some View {
     let staleClaimIDs = staleClaimIDs(for: todo)
     let staleCitationIDs = staleCitationIDs(for: todo)
-    if staleClaimIDs.isEmpty == false || staleCitationIDs.isEmpty == false {
+    if !staleClaimIDs.isEmpty || !staleCitationIDs.isEmpty {
       VStack(alignment: .leading, spacing: 6) {
         Text("检测到失效证据 ID：\(staleClaimIDs.count + staleCitationIDs.count) 条")
           .font(.caption)
@@ -114,12 +114,12 @@ extension PlanInputView {
 
   private func staleClaimIDs(for todo: TodoItem) -> [String] {
     let validClaimIDs = Set(document.claims.map { $0.id.uuidString })
-    return todo.linkedClaimIDs.filter { validClaimIDs.contains($0) == false }
+    return todo.linkedClaimIDs.filter { !validClaimIDs.contains($0) }
   }
 
   private func staleCitationIDs(for todo: TodoItem) -> [String] {
     let validCitationIDs = Set(document.citations.map { $0.id.uuidString })
-    return todo.linkedCitationIDs.filter { validCitationIDs.contains($0) == false }
+    return todo.linkedCitationIDs.filter { !validCitationIDs.contains($0) }
   }
 
   private func removeStaleEvidenceLinks(for todo: TodoItem) {
@@ -132,10 +132,10 @@ extension PlanInputView {
   }
 
   private func todoCitationLabel(_ citation: Citation) -> String {
-    if let title = citation.title?.trimmingCharacters(in: .whitespacesAndNewlines), title.isEmpty == false {
+    if let title = citation.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
       return title
     }
-    if citation.url.isEmpty == false {
+    if !citation.url.isEmpty {
       return citation.url
     }
     return "（未命名引用）"

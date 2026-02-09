@@ -147,7 +147,7 @@
         trailing: provider.isActive ? "已激活" : "未激活",
         trailingColor: provider.isActive ? UIStyle.positiveStatusColor : .secondary
       ) {
-        if provider.isActive == false {
+        if !provider.isActive {
           HStack {
             Spacer(minLength: UIStyle.providerFormLabelWidth + UIStyle.sectionSpacing)
 
@@ -164,7 +164,7 @@
 
     @ViewBuilder
     private var localMessageSection: some View {
-      if let message, message.isEmpty == false {
+      if let message, !message.isEmpty {
         Text(message)
           .font(.callout)
           .foregroundStyle(.secondary)

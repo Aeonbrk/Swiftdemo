@@ -49,15 +49,15 @@ extension PlanInputView {
     return AppRouteScaffold {
       executionToolbar
 
-      if executionSuggestionRows.isEmpty == false {
+      if !executionSuggestionRows.isEmpty {
         executionRecommendationPanel
       }
 
-      if pendingSyncReviews.isEmpty == false {
+      if !pendingSyncReviews.isEmpty {
         executionPendingReviewPanel
       }
 
-      if recentAutomationAudits.isEmpty == false {
+      if !recentAutomationAudits.isEmpty {
         executionAutomationAuditPanel
       }
 
@@ -97,7 +97,7 @@ extension PlanInputView {
 
         Spacer(minLength: UIStyle.compactSpacing)
 
-        if executionSuggestionRows.isEmpty == false {
+        if !executionSuggestionRows.isEmpty {
           Text("建议 \(executionSuggestionRows.count) 项")
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -143,7 +143,7 @@ extension PlanInputView {
   private var pendingExecutionRecommendations: [TodoRecommendation] {
     let activeIDs = Set(document.todos.map(\.id))
     return executionRecommendations.filter {
-      activeIDs.contains($0.todoID) && handledRecommendationTodoIDs.contains($0.todoID) == false
+      activeIDs.contains($0.todoID) && !handledRecommendationTodoIDs.contains($0.todoID)
     }
   }
 
@@ -306,14 +306,14 @@ extension PlanInputView {
 
     switch executionFilter {
     case .today:
-      return isDone == false && isBlocked == false && isOverdue == false
+      return !isDone && !isBlocked && !isOverdue
         && (isTodayScheduled || hasNoSchedule)
     case .overdue:
-      return isDone == false && isOverdue
+      return !isDone && isOverdue
     case .done:
       return isDone
     case .blocked:
-      return isBlocked && isDone == false
+      return isBlocked && !isDone
     }
   }
 
@@ -351,7 +351,7 @@ extension PlanInputView {
 
   private func executionRowDetail(for todo: TodoItem) -> some View {
     Group {
-      if todo.detail.isEmpty == false {
+      if !todo.detail.isEmpty {
         Text(todo.detail)
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -366,7 +366,7 @@ extension PlanInputView {
         .font(.caption2)
         .foregroundStyle(.secondary)
 
-      if let score = executionScoreByTodoID[todo.id] {
+      if let score = scoreByTodoID[todo.id] {
         Text("Score \(score)")
           .font(.caption2)
           .foregroundStyle(.secondary)

@@ -1,5 +1,25 @@
 import Foundation
 
+private func makeExternalTaskRecord(
+  from todo: TodoItem,
+  provider: ExternalTaskProvider,
+  externalID: String,
+  sourceUpdatedAt: Date?
+) -> ExternalTaskRecord {
+  ExternalTaskRecord(
+    provider: provider,
+    externalID: externalID,
+    title: todo.title,
+    notes: todo.detail,
+    estimatedMinutes: todo.estimatedMinutes,
+    statusRaw: todo.statusRaw,
+    priorityRaw: todo.priorityRaw,
+    scheduledAt: todo.scheduledAt,
+    dueAt: todo.dueAt,
+    sourceUpdatedAt: sourceUpdatedAt
+  )
+}
+
 public enum ExternalTaskProvider: String, Codable, Sendable, CaseIterable {
   case reminders
   case calendar
@@ -70,16 +90,10 @@ public enum ExternalTaskMapping {
     todo: TodoItem,
     provider: ExternalTaskProvider
   ) -> ExternalTaskRecord {
-    ExternalTaskRecord(
+    makeExternalTaskRecord(
+      from: todo,
       provider: provider,
       externalID: todo.externalSyncID ?? todo.id.uuidString,
-      title: todo.title,
-      notes: todo.detail,
-      estimatedMinutes: todo.estimatedMinutes,
-      statusRaw: todo.statusRaw,
-      priorityRaw: todo.priorityRaw,
-      scheduledAt: todo.scheduledAt,
-      dueAt: todo.dueAt,
       sourceUpdatedAt: todo.externalSyncUpdatedAt ?? todo.updatedAt
     )
   }
@@ -127,16 +141,10 @@ public enum SyncConflictResolver {
     remote: ExternalTaskRecord,
     policy: SyncOwnershipPolicy
   ) -> SyncConflictResolution {
-    let localRecord = ExternalTaskRecord(
+    let localSnapshot = makeExternalTaskRecord(
+      from: local,
       provider: remote.provider,
       externalID: remote.externalID,
-      title: local.title,
-      notes: local.detail,
-      estimatedMinutes: local.estimatedMinutes,
-      statusRaw: local.statusRaw,
-      priorityRaw: local.priorityRaw,
-      scheduledAt: local.scheduledAt,
-      dueAt: local.dueAt,
       sourceUpdatedAt: local.updatedAt
     )
 
@@ -144,7 +152,7 @@ public enum SyncConflictResolver {
     case .localWins:
       return SyncConflictResolution(
         policy: policy,
-        mergedRecord: localRecord,
+        mergedRecord: localSnapshot,
         requiresManualReview: false
       )
     case .remoteWins:
@@ -156,7 +164,7 @@ public enum SyncConflictResolver {
     case .manualReview:
       return SyncConflictResolution(
         policy: policy,
-        mergedRecord: localRecord,
+        mergedRecord: localSnapshot,
         requiresManualReview: true
       )
     }

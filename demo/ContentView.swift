@@ -28,7 +28,7 @@ struct ContentView: View {
 
   private var filteredDocuments: [PlanDocument] {
     let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard keyword.isEmpty == false else { return documents }
+    guard !keyword.isEmpty else { return documents }
     return documents.filter { document in
       document.title.localizedCaseInsensitiveContains(keyword)
     }
@@ -160,7 +160,7 @@ struct ContentView: View {
 
   @MainActor
   private func runPerformanceDocumentSwitchLoop() async {
-    while Task.isCancelled == false {
+    while !Task.isCancelled {
       let ids = documents.map(\.id)
       if ids.isEmpty {
         return
@@ -205,7 +205,7 @@ struct ContentView: View {
     modelContext.delete(document)
 
     if let selectedDocumentID,
-      documents.contains(where: { $0.id == selectedDocumentID }) == false {
+      !documents.contains(where: { $0.id == selectedDocumentID }) {
       self.selectedDocumentID = documents.first?.id
     }
   }

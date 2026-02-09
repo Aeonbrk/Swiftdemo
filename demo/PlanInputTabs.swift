@@ -34,7 +34,7 @@ extension PlanInputView {
   var previewTab: some View {
     ScrollView {
       AppRouteScaffold {
-        if let outline = document.outline, outline.planMarkdown.isEmpty == false {
+        if let outline = document.outline, !outline.planMarkdown.isEmpty {
           AppPanelCard {
             previewText(for: outline.planMarkdown)
           }
@@ -294,7 +294,7 @@ extension PlanInputView {
           .font(.caption)
           .foregroundStyle(.secondary)
 
-        if card.tagsRaw.isEmpty == false {
+        if !card.tagsRaw.isEmpty {
           Text(card.tagsRaw)
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -351,7 +351,7 @@ extension PlanInputView {
         }
       }
 
-      if let title = citation.title, title.isEmpty == false {
+      if let title = citation.title, !title.isEmpty {
         Text(title)
           .font(.caption)
           .foregroundStyle(.secondary)
@@ -376,7 +376,7 @@ extension PlanInputView {
       Text("\(record.providerName) · \(record.model)")
         .font(.callout)
 
-      if let errorSummary = record.errorSummary, errorSummary.isEmpty == false {
+      if let errorSummary = record.errorSummary, !errorSummary.isEmpty {
         Text(errorSummary)
           .font(.caption)
           .foregroundStyle(UIStyle.destructiveStatusColor)

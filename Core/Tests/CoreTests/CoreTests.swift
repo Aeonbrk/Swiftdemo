@@ -5,22 +5,20 @@ import Testing
 @testable import Core
 
 @Test @MainActor func planDocumentPersistsInMemory() throws {
-  let container = try CoreModelContainer.make(inMemory: true)
-  let context = ModelContext(container)
+  let context = try makeInMemoryContext()
 
   let document = PlanDocument(title: "Rust 90 Days", rawInput: "RAW")
   context.insert(document)
   try context.save()
 
-  let fetched = try context.fetch(FetchDescriptor<PlanDocument>())
-  #expect(fetched.count == 1)
-  #expect(fetched[0].title == "Rust 90 Days")
-  #expect(fetched[0].rawInput == "RAW")
+  let persistedDocuments = try context.fetch(FetchDescriptor<PlanDocument>())
+  #expect(persistedDocuments.count == 1)
+  #expect(persistedDocuments[0].title == "Rust 90 Days")
+  #expect(persistedDocuments[0].rawInput == "RAW")
 }
 
 @Test @MainActor func todoItemPersistsWithTimestamps() throws {
-  let container = try CoreModelContainer.make(inMemory: true)
-  let context = ModelContext(container)
+  let context = try makeInMemoryContext()
 
   let document = PlanDocument(title: "Plan", rawInput: "RAW")
   let todo = TodoItem(
@@ -35,20 +33,19 @@ import Testing
   context.insert(todo)
   try context.save()
 
-  let fetched = try context.fetch(FetchDescriptor<TodoItem>())
-  #expect(fetched.count == 1)
-  #expect(fetched[0].title == "Read Chapter 1")
-  #expect(fetched[0].dueAt != nil)
-  #expect(fetched[0].document?.id == document.id)
+  let persistedTodos = try context.fetch(FetchDescriptor<TodoItem>())
+  #expect(persistedTodos.count == 1)
+  #expect(persistedTodos[0].title == "Read Chapter 1")
+  #expect(persistedTodos[0].dueAt != nil)
+  #expect(persistedTodos[0].document?.id == document.id)
 
-  let fetchedDocuments = try context.fetch(FetchDescriptor<PlanDocument>())
-  #expect(fetchedDocuments.count == 1)
-  #expect(fetchedDocuments[0].todos.count == 1)
+  let persistedDocuments = try context.fetch(FetchDescriptor<PlanDocument>())
+  #expect(persistedDocuments.count == 1)
+  #expect(persistedDocuments[0].todos.count == 1)
 }
 
 @Test @MainActor func outlineCardsClaimsCitationsPersist() throws {
-  let container = try CoreModelContainer.make(inMemory: true)
-  let context = ModelContext(container)
+  let context = try makeInMemoryContext()
 
   let document = PlanDocument(title: "Plan", rawInput: "RAW")
   document.outline = PlanOutline(planJSON: "{}", planMarkdown: "# Plan")
@@ -80,8 +77,7 @@ import Testing
 }
 
 @Test @MainActor func generationRecordPersists() throws {
-  let container = try CoreModelContainer.make(inMemory: true)
-  let context = ModelContext(container)
+  let context = try makeInMemoryContext()
 
   let document = PlanDocument(title: "Plan", rawInput: "RAW")
   let record = GenerationRecord(
@@ -98,19 +94,18 @@ import Testing
   context.insert(record)
   try context.save()
 
-  let fetched = try context.fetch(FetchDescriptor<GenerationRecord>())
-  #expect(fetched.count == 1)
-  #expect(fetched[0].providerName == "DeepSeek")
-  #expect(fetched[0].statusRaw == "failed")
+  let persistedRecords = try context.fetch(FetchDescriptor<GenerationRecord>())
+  #expect(persistedRecords.count == 1)
+  #expect(persistedRecords[0].providerName == "DeepSeek")
+  #expect(persistedRecords[0].statusRaw == "failed")
 
-  let fetchedDocuments = try context.fetch(FetchDescriptor<PlanDocument>())
-  #expect(fetchedDocuments.count == 1)
-  #expect(fetchedDocuments[0].generations.count == 1)
+  let persistedDocuments = try context.fetch(FetchDescriptor<PlanDocument>())
+  #expect(persistedDocuments.count == 1)
+  #expect(persistedDocuments[0].generations.count == 1)
 }
 
 @Test @MainActor func providerConfigPersists() throws {
-  let container = try CoreModelContainer.make(inMemory: true)
-  let context = ModelContext(container)
+  let context = try makeInMemoryContext()
 
   let provider = LLMProvider(
     name: "DeepSeek",
@@ -123,31 +118,20 @@ import Testing
   context.insert(provider)
   try context.save()
 
-  let fetched = try context.fetch(FetchDescriptor<LLMProvider>())
-  #expect(fetched.count == 1)
-  #expect(fetched[0].name == "DeepSeek")
-  #expect(fetched[0].baseURL == "https://api.deepseek.com/v1")
-  #expect(fetched[0].model == "deepseek-chat")
-  #expect(fetched[0].apiKeyKeychainAccount == "provider-1")
+  let persistedProviders = try context.fetch(FetchDescriptor<LLMProvider>())
+  #expect(persistedProviders.count == 1)
+  #expect(persistedProviders[0].name == "DeepSeek")
+  #expect(persistedProviders[0].baseURL == "https://api.deepseek.com/v1")
+  #expect(persistedProviders[0].model == "deepseek-chat")
+  #expect(persistedProviders[0].apiKeyKeychainAccount == "provider-1")
 }
 
 @Test func openAICompatibleClientSendsBearerToken() async throws {
   let assistantContent =
     "{\"planJSON\":\"{}\",\"planMarkdown\":\"# Plan\",\"claims\":[],\"citations\":[]}"
-  let responseData = try JSONSerialization.data(
-    withJSONObject: [
-      "id": "cmpl-1",
-      "choices": [
-        [
-          "index": 0,
-          "message": [
-            "role": "assistant",
-            "content": assistantContent
-          ]
-        ]
-      ]
-    ],
-    options: []
+  let chatCompletionResponseData = try makeChatCompletionResponseData(
+    completionID: "cmpl-1",
+    assistantContent: assistantContent
   )
 
   MockURLProtocol.setHandler(path: "/v1/test-openai-client/chat/completions") { request in
@@ -155,19 +139,11 @@ import Testing
     #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer test-key")
     return (
       HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
-      responseData
+      chatCompletionResponseData
     )
   }
 
-  let config = URLSessionConfiguration.ephemeral
-  config.protocolClasses = [MockURLProtocol.self]
-
-  let session = URLSession(configuration: config)
-  let client = OpenAICompatibleClient(
-    baseURL: URL(string: "https://api.example.com/v1/test-openai-client")!,
-    apiKey: "test-key",
-    urlSession: session
-  )
+  let client = makeMockClient(testPath: "test-openai-client")
 
   let content = try await client.createChatCompletion(
     model: "test-model",
@@ -198,38 +174,19 @@ import Testing
     {\"planJSON\":\"{}\",\"planMarkdown\":\"# Plan\",\"claims\":[],\"citations\":[]}
     ```
     """
-  let responseData = try JSONSerialization.data(
-    withJSONObject: [
-      "id": "cmpl-1",
-      "choices": [
-        [
-          "index": 0,
-          "message": [
-            "role": "assistant",
-            "content": assistantContent
-          ]
-        ]
-      ]
-    ],
-    options: []
+  let chatCompletionResponseData = try makeChatCompletionResponseData(
+    completionID: "cmpl-1",
+    assistantContent: assistantContent
   )
 
   MockURLProtocol.setHandler(path: "/v1/test-step1/chat/completions") { request in
     return (
       HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
-      responseData
+      chatCompletionResponseData
     )
   }
 
-  let config = URLSessionConfiguration.ephemeral
-  config.protocolClasses = [MockURLProtocol.self]
-
-  let session = URLSession(configuration: config)
-  let client = OpenAICompatibleClient(
-    baseURL: URL(string: "https://api.example.com/v1/test-step1")!,
-    apiKey: "test-key",
-    urlSession: session
-  )
+  let client = makeMockClient(testPath: "test-step1")
 
   let pipeline = Step1Pipeline(client: client, model: "test-model")
   let output = try await pipeline.run(rawInput: "RAW")
@@ -257,38 +214,19 @@ import Testing
     "todos":[{"title":"T","detail":"D","estimatedMinutes":30,"frequencyRaw":"once"}]}
     ```
     """
-  let responseData = try JSONSerialization.data(
-    withJSONObject: [
-      "id": "cmpl-2",
-      "choices": [
-        [
-          "index": 0,
-          "message": [
-            "role": "assistant",
-            "content": assistantContent
-          ]
-        ]
-      ]
-    ],
-    options: []
+  let chatCompletionResponseData = try makeChatCompletionResponseData(
+    completionID: "cmpl-2",
+    assistantContent: assistantContent
   )
 
   MockURLProtocol.setHandler(path: "/v1/test-step2/chat/completions") { request in
     return (
       HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,
-      responseData
+      chatCompletionResponseData
     )
   }
 
-  let config = URLSessionConfiguration.ephemeral
-  config.protocolClasses = [MockURLProtocol.self]
-  let session = URLSession(configuration: config)
-
-  let client = OpenAICompatibleClient(
-    baseURL: URL(string: "https://api.example.com/v1/test-step2")!,
-    apiKey: "test-key",
-    urlSession: session
-  )
+  let client = makeMockClient(testPath: "test-step2")
 
   let pipeline = Step2Pipeline(client: client, model: "test-model")
   let output = try await pipeline.run(planJSON: "{}", planMarkdown: "#")
@@ -332,6 +270,50 @@ import Testing
     #expect(preset.model.isEmpty == false)
     #expect(preset.extraHeadersJSON.isEmpty == false)
   }
+}
+
+@MainActor
+private func makeInMemoryContext() throws -> ModelContext {
+  let container = try CoreModelContainer.make(inMemory: true)
+  return ModelContext(container)
+}
+
+private func makeChatCompletionResponseData(
+  completionID: String,
+  assistantContent: String
+) throws -> Data {
+  try JSONSerialization.data(
+    withJSONObject: [
+      "id": completionID,
+      "choices": [
+        [
+          "index": 0,
+          "message": [
+            "role": "assistant",
+            "content": assistantContent
+          ]
+        ]
+      ]
+    ],
+    options: []
+  )
+}
+
+private func makeMockClient(
+  testPath: String,
+  apiKey: String = "test-key"
+) -> OpenAICompatibleClient {
+  OpenAICompatibleClient(
+    baseURL: URL(string: "https://api.example.com/v1/\(testPath)")!,
+    apiKey: apiKey,
+    urlSession: makeMockSession()
+  )
+}
+
+private func makeMockSession() -> URLSession {
+  let configuration = URLSessionConfiguration.ephemeral
+  configuration.protocolClasses = [MockURLProtocol.self]
+  return URLSession(configuration: configuration)
 }
 
 private final class MockURLProtocol: URLProtocol {

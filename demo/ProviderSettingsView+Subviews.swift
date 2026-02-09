@@ -181,7 +181,7 @@
       .focused($focusedProviderID, equals: provider.id)
       .buttonStyle(.plain)
       .contextMenu {
-        if provider.isActive == false {
+        if !provider.isActive {
           Button("设为激活") {
             selectedProviderID = provider.id
             setActiveProvider(provider)
@@ -331,7 +331,7 @@
 
     @ViewBuilder
     var messageSection: some View {
-      if let message, message.isEmpty == false {
+      if let message, !message.isEmpty {
         Text(message)
           .font(.callout)
           .foregroundStyle(.secondary)
@@ -352,7 +352,7 @@
     }
 
     func refreshSelectionIfNeeded() {
-      guard providers.isEmpty == false else {
+      guard !providers.isEmpty else {
         selectedProviderID = nil
         return
       }

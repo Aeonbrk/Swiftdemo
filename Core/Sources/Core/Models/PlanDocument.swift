@@ -1,6 +1,11 @@
 import Foundation
 import SwiftData
 
+private enum PlanDocumentDefaults {
+  static let syncOwnershipPolicy: SyncOwnershipPolicy = .localWins
+  static let automationPermissionPolicy: AutomationPermissionPolicy = .assistive
+}
+
 @Model
 public final class PlanDocument {
   @Attribute(.unique)
@@ -35,6 +40,16 @@ public final class PlanDocument {
   @Relationship(deleteRule: .cascade, inverse: \AutomationAuditEntry.document)
   public var automationAudits: [AutomationAuditEntry]
 
+  public var syncOwnershipPolicy: SyncOwnershipPolicy {
+    get { Self.decodeSyncOwnershipPolicy(from: syncOwnershipPolicyRaw) }
+    set { syncOwnershipPolicyRaw = newValue.rawValue }
+  }
+
+  public var automationPermissionPolicy: AutomationPermissionPolicy {
+    get { Self.decodeAutomationPermissionPolicy(from: automationPermissionPolicyRaw) }
+    set { automationPermissionPolicyRaw = newValue.rawValue }
+  }
+
   public init(
     title: String,
     rawInput: String,
@@ -57,5 +72,31 @@ public final class PlanDocument {
     self.citations = []
     self.generations = []
     self.automationAudits = []
+  }
+
+  public convenience init(
+    title: String,
+    rawInput: String,
+    syncOwnershipPolicy: SyncOwnershipPolicy,
+    automationPermissionPolicy: AutomationPermissionPolicy,
+    createdAt: Date = .now,
+    updatedAt: Date = .now
+  ) {
+    self.init(
+      title: title,
+      rawInput: rawInput,
+      syncOwnershipPolicyRaw: syncOwnershipPolicy.rawValue,
+      automationPermissionPolicyRaw: automationPermissionPolicy.rawValue,
+      createdAt: createdAt,
+      updatedAt: updatedAt
+    )
+  }
+
+  private static func decodeSyncOwnershipPolicy(from raw: String) -> SyncOwnershipPolicy {
+    SyncOwnershipPolicy(rawValue: raw) ?? PlanDocumentDefaults.syncOwnershipPolicy
+  }
+
+  private static func decodeAutomationPermissionPolicy(from raw: String) -> AutomationPermissionPolicy {
+    AutomationPermissionPolicy(rawValue: raw) ?? PlanDocumentDefaults.automationPermissionPolicy
   }
 }

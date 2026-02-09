@@ -34,6 +34,8 @@ public struct ProviderConnectivityResult: Sendable, Equatable {
 }
 
 public struct ProviderConnectivityProbe {
+  private static let modelsPathComponent = "models"
+
   private let urlSession: URLSession
 
   public init(urlSession: URLSession = .shared) {
@@ -45,7 +47,7 @@ public struct ProviderConnectivityProbe {
     apiKey: String,
     extraHeaders: [String: String]
   ) async -> ProviderConnectivityResult {
-    var request = URLRequest(url: baseURL.appendingPathComponent("models"))
+    var request = URLRequest(url: baseURL.appendingPathComponent(Self.modelsPathComponent))
     request.httpMethod = "GET"
     request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
     for (key, value) in extraHeaders {
@@ -55,7 +57,7 @@ public struct ProviderConnectivityProbe {
     let start = Date()
     do {
       let (data, response) = try await urlSession.data(for: request)
-      let latencyMilliseconds = max(0, Int(Date().timeIntervalSince(start) * 1000))
+      let latencyMilliseconds = measureLatencyMilliseconds(since: start)
 
       guard let httpResponse = response as? HTTPURLResponse else {
         return ProviderConnectivityResult(
@@ -73,35 +75,45 @@ public struct ProviderConnectivityProbe {
         message: status == .healthy ? nil : responseBodySummary(data)
       )
     } catch {
-      let latencyMilliseconds = max(0, Int(Date().timeIntervalSince(start) * 1000))
-      return ProviderConnectivityResult(
-        status: classifyError(error),
-        latencyMilliseconds: latencyMilliseconds,
-        message: String(describing: error)
+      return makeErrorResult(
+        for: error,
+        latencyMilliseconds: measureLatencyMilliseconds(since: start)
       )
     }
   }
 
+  private func measureLatencyMilliseconds(since start: Date) -> Int {
+    max(0, Int(Date().timeIntervalSince(start) * 1000))
+  }
+
+  private func makeErrorResult(
+    for error: Error,
+    latencyMilliseconds: Int
+  ) -> ProviderConnectivityResult {
+    ProviderConnectivityResult(
+      status: classifyError(error),
+      latencyMilliseconds: latencyMilliseconds,
+      message: String(describing: error)
+    )
+  }
+
   private func classifyHTTPStatusCode(_ statusCode: Int) -> ProviderConnectivityStatus {
-    if (200..<300).contains(statusCode) {
+    switch statusCode {
+    case 200..<300:
       return .healthy
-    }
-    if statusCode == 401 {
+    case 401:
       return .unauthorized
-    }
-    if statusCode == 403 {
+    case 403:
       return .forbidden
-    }
-    if statusCode == 429 {
+    case 429:
       return .rateLimited
-    }
-    if (500..<600).contains(statusCode) {
+    case 500..<600:
       return .serverError
-    }
-    if (400..<500).contains(statusCode) {
+    case 400..<500:
       return .clientError
+    default:
+      return .unknown
     }
-    return .unknown
   }
 
   private func classifyError(_ error: Error) -> ProviderConnectivityStatus {

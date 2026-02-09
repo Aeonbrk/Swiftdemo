@@ -40,7 +40,7 @@ struct AppEmptyStatePanel: View {
     ContentUnavailableView {
       Label(title, systemImage: systemImage)
     } description: {
-      if let description, description.isEmpty == false {
+      if let description, !description.isEmpty {
         Text(description)
       }
     }

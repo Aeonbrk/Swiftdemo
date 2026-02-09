@@ -259,12 +259,12 @@ extension PlanInputView {
 
   private func syncSelectionWithCurrentData() {
     if let selectedCardID,
-      document.flashcards.contains(where: { $0.id == selectedCardID }) == false {
+      !document.flashcards.contains(where: { $0.id == selectedCardID }) {
       self.selectedCardID = document.flashcards.first?.id
     }
 
     if let selectedTodoID,
-      document.todos.contains(where: { $0.id == selectedTodoID }) == false {
+      !document.todos.contains(where: { $0.id == selectedTodoID }) {
       self.selectedTodoID = document.todos.first?.id
     }
   }
@@ -283,7 +283,7 @@ extension PlanInputView {
         return
       }
 
-      if Task.isCancelled == false {
+      if !Task.isCancelled {
         document.updatedAt = .now
       }
     }
