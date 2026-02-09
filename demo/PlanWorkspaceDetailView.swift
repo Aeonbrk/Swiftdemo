@@ -1,37 +1,63 @@
 import SwiftUI
 
-struct PlanWorkspaceDetailView: View {
+struct PlanWorkspaceDetailView<
+  InputView: View,
+  PreviewView: View,
+  CardsView: View,
+  TodosView: View,
+  ExecutionView: View,
+  CitationsView: View,
+  HistoryView: View
+>: View {
   let selectedRoute: PlanWorkspaceRoute
 
-  let inputView: AnyView
-  let previewView: AnyView
-  let cardsView: AnyView
-  let todosView: AnyView
-  let executionView: AnyView
-  let citationsView: AnyView
-  let historyView: AnyView
+  private let inputView: () -> InputView
+  private let previewView: () -> PreviewView
+  private let cardsView: () -> CardsView
+  private let todosView: () -> TodosView
+  private let executionView: () -> ExecutionView
+  private let citationsView: () -> CitationsView
+  private let historyView: () -> HistoryView
+
+  init(
+    selectedRoute: PlanWorkspaceRoute,
+    @ViewBuilder inputView: @escaping () -> InputView,
+    @ViewBuilder previewView: @escaping () -> PreviewView,
+    @ViewBuilder cardsView: @escaping () -> CardsView,
+    @ViewBuilder todosView: @escaping () -> TodosView,
+    @ViewBuilder executionView: @escaping () -> ExecutionView,
+    @ViewBuilder citationsView: @escaping () -> CitationsView,
+    @ViewBuilder historyView: @escaping () -> HistoryView
+  ) {
+    self.selectedRoute = selectedRoute
+    self.inputView = inputView
+    self.previewView = previewView
+    self.cardsView = cardsView
+    self.todosView = todosView
+    self.executionView = executionView
+    self.citationsView = citationsView
+    self.historyView = historyView
+  }
 
   var body: some View {
     Group {
       switch selectedRoute {
       case .input:
-        inputView
+        inputView()
       case .preview:
-        previewView
+        previewView()
       case .cards:
-        cardsView
+        cardsView()
       case .todos:
-        todosView
+        todosView()
       case .execution:
-        executionView
+        executionView()
       case .citations:
-        citationsView
+        citationsView()
       case .history:
-        historyView
+        historyView()
       }
     }
-    .id(selectedRoute)
-    .animation(.snappy(duration: 0.2), value: selectedRoute)
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
   }
 }

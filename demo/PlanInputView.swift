@@ -31,6 +31,7 @@ struct PlanInputView: View {
   @State var handledRecommendationTodoIDs: Set<UUID> = []
   @State var pendingSyncReviewsByTodoID: [UUID: PendingSyncReview] = [:]
   @State var isShowingCardBack = false
+  @State private var updatedAtDebounceTask: Task<Void, Never>?
 
   #if os(macOS)
     @State var selectedRoute: PlanWorkspaceRoute = .input
@@ -75,10 +76,13 @@ extension PlanInputView {
       isShowingCardBack = false
     }
     .onChange(of: document.title) { _, _ in
-      document.updatedAt = .now
+      scheduleDocumentUpdatedAtTouch()
     }
     .onChange(of: document.rawInput) { _, _ in
-      document.updatedAt = .now
+      scheduleDocumentUpdatedAtTouch()
+    }
+    .onDisappear {
+      flushDocumentUpdatedAtTouch()
     }
   }
 
@@ -265,6 +269,27 @@ extension PlanInputView {
       self.selectedTodoID = document.todos.first?.id
     }
   }
+
+  private func scheduleDocumentUpdatedAtTouch() {
+    updatedAtDebounceTask?.cancel()
+    updatedAtDebounceTask = Task {
+      do {
+        try await Task.sleep(nanoseconds: 500_000_000)
+      } catch {
+        return
+      }
+
+      if Task.isCancelled == false {
+        document.updatedAt = .now
+      }
+    }
+  }
+
+  private func flushDocumentUpdatedAtTouch() {
+    updatedAtDebounceTask?.cancel()
+    updatedAtDebounceTask = nil
+    document.updatedAt = .now
+  }
 }
 
 #if os(macOS)
@@ -302,10 +327,13 @@ extension PlanInputView {
         isShowingCardBack = false
       }
       .onChange(of: document.title) { _, _ in
-        document.updatedAt = .now
+        scheduleDocumentUpdatedAtTouch()
       }
       .onChange(of: document.rawInput) { _, _ in
-        document.updatedAt = .now
+        scheduleDocumentUpdatedAtTouch()
+      }
+      .onDisappear {
+        flushDocumentUpdatedAtTouch()
       }
     }
 
@@ -320,13 +348,13 @@ extension PlanInputView {
 
         PlanWorkspaceDetailView(
           selectedRoute: selectedRoute,
-          inputView: AnyView(inputTab),
-          previewView: AnyView(previewTab),
-          cardsView: AnyView(cardsTab),
-          todosView: AnyView(todosTab),
-          executionView: AnyView(executionTab),
-          citationsView: AnyView(citationsTab),
-          historyView: AnyView(historyTab)
+          inputView: { inputTab },
+          previewView: { previewTab },
+          cardsView: { cardsTab },
+          todosView: { todosTab },
+          executionView: { executionTab },
+          citationsView: { citationsTab },
+          historyView: { historyTab }
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
       }

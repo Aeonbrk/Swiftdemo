@@ -33,10 +33,12 @@ struct ContentView: View {
   }
 
   var body: some View {
+    let currentFilteredDocuments = filteredDocuments
+
     NavigationSplitView {
       VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
         Group {
-          if filteredDocuments.isEmpty {
+          if currentFilteredDocuments.isEmpty {
             ContentUnavailableView(
               searchText.isEmpty ? "还没有学习计划" : "没有匹配结果",
               systemImage: searchText.isEmpty ? "doc.badge.plus" : "magnifyingglass"
@@ -46,7 +48,7 @@ struct ContentView: View {
             .appPanelGlass()
           } else {
             List {
-              ForEach(filteredDocuments, id: \.id) { document in
+              ForEach(currentFilteredDocuments, id: \.id) { document in
                 documentRow(document)
                   .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
                   .listRowSeparator(.hidden)
@@ -59,7 +61,9 @@ struct ContentView: View {
                     }
                   }
               }
-              .onDelete(perform: deleteFilteredDocuments)
+              .onDelete { offsets in
+                deleteFilteredDocuments(at: offsets, filteredDocuments: currentFilteredDocuments)
+              }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -117,7 +121,7 @@ struct ContentView: View {
     selectedDocumentID = document.id
   }
 
-  private func deleteFilteredDocuments(at offsets: IndexSet) {
+  private func deleteFilteredDocuments(at offsets: IndexSet, filteredDocuments: [PlanDocument]) {
     for index in offsets {
       deleteDocument(filteredDocuments[index])
     }

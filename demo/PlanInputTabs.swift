@@ -76,7 +76,7 @@ extension PlanInputView {
   var citationsTab: some View {
     AppRouteScaffold {
       AppPanelList {
-        ForEach(document.citations.sorted(by: { $0.createdAt > $1.createdAt }), id: \.id) { citation in
+        ForEach(sortedCitations, id: \.id) { citation in
           citationRow(citation)
             .padding(.horizontal, UIStyle.panelInnerPadding)
             .padding(.vertical, UIStyle.listRowVerticalPadding)
@@ -92,7 +92,7 @@ extension PlanInputView {
   var historyTab: some View {
     AppRouteScaffold {
       AppPanelList {
-        ForEach(document.generations.sorted(by: { $0.createdAt > $1.createdAt }), id: \.id) { record in
+        ForEach(sortedGenerations, id: \.id) { record in
           generationRow(record)
             .padding(.horizontal, UIStyle.panelInnerPadding)
             .padding(.vertical, UIStyle.listRowVerticalPadding)
@@ -151,7 +151,7 @@ extension PlanInputView {
 
   private var cardsList: some View {
     List(selection: $selectedCardID) {
-      ForEach(document.flashcards.sorted(by: { $0.createdAt > $1.createdAt }), id: \.id) { card in
+      ForEach(sortedFlashcards, id: \.id) { card in
         cardRow(card)
           .padding(.horizontal, UIStyle.panelInnerPadding)
           .padding(.vertical, UIStyle.listRowVerticalPadding)
@@ -234,7 +234,7 @@ extension PlanInputView {
 
   private var todosList: some View {
     List(selection: $selectedTodoID) {
-      ForEach(document.todos.sorted(by: { $0.createdAt > $1.createdAt }), id: \.id) { todo in
+      ForEach(sortedTodos, id: \.id) { todo in
         todoRow(todo)
           .padding(.horizontal, UIStyle.panelInnerPadding)
           .padding(.vertical, UIStyle.listRowVerticalPadding)
