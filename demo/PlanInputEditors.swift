@@ -27,9 +27,24 @@ extension PlanInputView {
     ScrollView {
       VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
         todoFieldsSection(for: todo)
-        todoSchedulingSection(for: todo)
-        todoEvidenceSection(for: todo)
-        todoDetailSection(for: todo)
+        DisclosureGroup(
+          isExpanded: $isTodoAdvancedEditorExpanded,
+          content: {
+            VStack(alignment: .leading, spacing: UIStyle.sectionSpacing) {
+              todoSchedulingSection(for: todo)
+              todoEvidenceSection(for: todo)
+              todoDetailSection(for: todo)
+            }
+            .padding(.top, UIStyle.compactSpacing)
+          },
+          label: {
+            Text("高级字段")
+              .font(.headline)
+          }
+        )
+        .padding(UIStyle.panelInnerPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appPanelGlass()
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.vertical, 8)

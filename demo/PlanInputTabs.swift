@@ -41,6 +41,12 @@ extension PlanInputView {
     ScrollView {
       AppRouteScaffold {
         workflowProgressView
+        if isWorkflowOnboardingPresented {
+          workflowOnboardingBanner
+        }
+        nowNextGuideCard(stage: .inputMaterial) {
+          navigateToWorkflowStage(.generatePlan)
+        }
 
         AppPanelCard {
           VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
@@ -82,6 +88,12 @@ extension PlanInputView {
     ScrollView {
       AppRouteScaffold {
         workflowProgressView
+        if isWorkflowOnboardingPresented {
+          workflowOnboardingBanner
+        }
+        nowNextGuideCard(stage: .generatePlan, nextActionLabel: generatePrimaryActionLabel) {
+          performGeneratePrimaryAction()
+        }
 
         AppPanelCard {
           VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
@@ -95,22 +107,22 @@ extension PlanInputView {
 
             HStack(spacing: UIStyle.compactSpacing) {
               Button {
-                generateStep1()
+                performGeneratePrimaryAction()
               } label: {
-                Label("生成计划", systemImage: "sparkles")
+                Label(generatePrimaryActionLabel, systemImage: generatePrimaryActionSymbol)
               }
               .appPrimaryActionButtonStyle()
-              .disabled(
-                isGenerating || document.rawInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-              )
+              .disabled(isGeneratePrimaryActionDisabled)
 
-              Button {
-                generateStep2()
-              } label: {
-                Label("生成任务", systemImage: "wand.and.stars")
+              if document.outline != nil {
+                Button {
+                  generateStep1()
+                } label: {
+                  Label("重跑 Step 1", systemImage: "arrow.counterclockwise")
+                }
+                .appSecondaryActionButtonStyle()
+                .disabled(isGenerating || !canRunStep1)
               }
-              .appSecondaryActionButtonStyle()
-              .disabled(isGenerating || document.outline == nil)
 
               if isGenerating {
                 ProgressView()
@@ -132,20 +144,6 @@ extension PlanInputView {
           .padding(.top, UIStyle.compactSpacing)
         }
         .padding(.horizontal, UIStyle.routeInnerPadding)
-
-        #if os(macOS)
-          if activeProviderName == nil {
-            Button {
-              withAnimation(.snappy(duration: 0.2)) {
-                isProviderInspectorVisible = true
-              }
-            } label: {
-              Label("打开 Provider 设置", systemImage: "slider.horizontal.3")
-            }
-            .padding(.horizontal, UIStyle.routeInnerPadding)
-            .appSecondaryActionButtonStyle()
-          }
-        #endif
 
         if let outline = document.outline, !outline.planMarkdown.isEmpty {
           AppPanelCard {
@@ -171,6 +169,12 @@ extension PlanInputView {
   var organizeArtifactsView: some View {
     AppRouteScaffold {
       workflowProgressView
+      if isWorkflowOnboardingPresented {
+        workflowOnboardingBanner
+      }
+      nowNextGuideCard(stage: .organizeArtifacts) {
+        navigateToWorkflowStage(.todayExecution)
+      }
 
       AppPanelCard {
         VStack(alignment: .leading, spacing: UIStyle.compactSpacing) {
@@ -308,5 +312,4 @@ extension PlanInputView {
       }
     }
   }
-
 }

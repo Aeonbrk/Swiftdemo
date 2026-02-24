@@ -31,13 +31,16 @@ struct PlanInputView: View {
   @State var handledRecommendationTodoIDs: Set<UUID> = []
   @State var pendingSyncReviewsByTodoID: [UUID: PendingSyncReview] = [:]
   @State var isExecutionAdvancedExpanded = false
+  @State var isExecutionQualityExpanded = false
+  @State var isTodoAdvancedEditorExpanded = false
   @State var selectedArtifactsSecondaryView: ArtifactsSecondaryView = .overview
   @State var isShowingCardBack = false
   @State private var updatedAtDebounceTask: Task<Void, Never>?
+  @AppStorage("workflow_onboarding_v1_seen") private var hasSeenWorkflowOnboarding = false
+  @State var isWorkflowOnboardingPresented = false
 
   #if os(macOS)
     @State var selectedRoute: PlanWorkspaceRoute = .inputMaterial
-    @State var isProviderInspectorVisible = false
     @State var routeAutomationTask: Task<Void, Never>?
     @State var performanceAutomationEditCounter: Int = 0
   #endif
@@ -85,6 +88,9 @@ extension PlanInputView {
     }
     .onDisappear {
       flushDocumentUpdatedAtTouch()
+    }
+    .task {
+      activateWorkflowOnboardingIfNeeded()
     }
   }
 
@@ -177,6 +183,12 @@ extension PlanInputView {
     updatedAtDebounceTask = nil
     document.updatedAt = .now
   }
+
+  func activateWorkflowOnboardingIfNeeded() {
+    guard hasSeenWorkflowOnboarding == false else { return }
+    isWorkflowOnboardingPresented = true
+    hasSeenWorkflowOnboarding = true
+  }
 }
 
 #if os(macOS)
@@ -189,12 +201,10 @@ extension PlanInputView {
       .padding(UIStyle.workspacePadding)
       .frame(maxWidth: .infinity, maxHeight: .infinity)
       .navigationTitle(document.title)
-      .inspector(isPresented: $isProviderInspectorVisible) {
-        providerInspector
-      }
       .onAppear {
         syncSelectionWithCurrentData()
         setupRouteAutomationIfNeeded()
+        activateWorkflowOnboardingIfNeeded()
       }
       .onChange(of: document.flashcards.count) { _, _ in
         syncSelectionWithCurrentData()
@@ -240,21 +250,5 @@ extension PlanInputView {
       .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var providerInspector: some View {
-      ProviderSettingsView(isEmbedded: true) {
-        closeProviderInspector()
-      }
-      .inspectorColumnWidth(
-        min: UIStyle.providerInspectorMinWidth,
-        ideal: UIStyle.providerInspectorWidth,
-        max: UIStyle.providerInspectorMaxWidth
-      )
-    }
-
-    private func closeProviderInspector() {
-      withAnimation(.snappy(duration: 0.2)) {
-        isProviderInspectorVisible = false
-      }
-    }
   }
 #endif

@@ -17,12 +17,17 @@ struct ContentView: View {
 
   @Environment(\.modelContext) private var modelContext
   @Query(sort: \PlanDocument.updatedAt, order: .reverse) private var documents: [PlanDocument]
+  @Query(filter: #Predicate<LLMProvider> { $0.isActive == true }, sort: \LLMProvider.updatedAt, order: .reverse)
+  private var activeProviders: [LLMProvider]
 
   @State private var selectedDocumentID: UUID?
   @State private var searchText: String = ""
   @State private var isCreateButtonHovered = false
   @State private var performanceAutomationTask: Task<Void, Never>?
   @State private var performanceAutomationEditCounter: Int = 0
+  #if os(macOS)
+    @State private var isProviderInspectorVisible = false
+  #endif
   @FocusState private var focusedDocumentID: UUID?
   @FocusState private var isCreateButtonFocused: Bool
 
@@ -37,6 +42,10 @@ struct ContentView: View {
   private var selectedDocument: PlanDocument? {
     guard let selectedDocumentID else { return nil }
     return documents.first(where: { $0.id == selectedDocumentID })
+  }
+
+  private var activeProviderName: String? {
+    activeProviders.first?.name
   }
 
   var body: some View {
@@ -115,6 +124,37 @@ struct ContentView: View {
         ContentUnavailableView("请选择一个计划", systemImage: "doc.text")
       }
     }
+    #if os(macOS)
+      .toolbar {
+        ToolbarItem(id: "provider-settings", placement: .navigation) {
+          Button {
+            withAnimation(.snappy(duration: 0.2)) {
+              isProviderInspectorVisible.toggle()
+            }
+          } label: {
+            Label(
+              activeProviderName == nil ? "Provider（未配置）" : "Provider",
+              systemImage: "slider.horizontal.3"
+            )
+          }
+          .labelStyle(.iconOnly)
+          .help(activeProviderName == nil ? "当前未激活 Provider，点击配置" : "管理 Provider")
+          .accessibilityLabel("Provider 设置")
+        }
+      }
+      .inspector(isPresented: $isProviderInspectorVisible) {
+        ProviderSettingsView(isEmbedded: true) {
+          withAnimation(.snappy(duration: 0.2)) {
+            isProviderInspectorVisible = false
+          }
+        }
+        .inspectorColumnWidth(
+          min: UIStyle.providerInspectorMinWidth,
+          ideal: UIStyle.providerInspectorWidth,
+          max: UIStyle.providerInspectorMaxWidth
+        )
+      }
+    #endif
     .onAppear {
       if selectedDocumentID == nil {
         selectedDocumentID = documents.first?.id
@@ -129,7 +169,6 @@ struct ContentView: View {
       performanceAutomationTask = nil
     }
   }
-
   private func createDocument() {
     let document = PlanDocument(title: "新计划", rawInput: "")
     modelContext.insert(document)

@@ -48,12 +48,9 @@ extension PlanInputView {
 
     return AppRouteScaffold {
       workflowProgressView
-      executionToolbar
+      executionHero
+      executionPrimaryActionRow
       executionQualityIssuePanel
-
-      if !executionSuggestionRows.isEmpty {
-        executionRecommendationPanel
-      }
 
       if executionFilteredTodos.isEmpty {
         AppPanelCard {
@@ -71,61 +68,7 @@ extension PlanInputView {
         }
       }
 
-      if isExecutionAdvancedExpanded {
-        executionAdvancedPanel
-      }
-    }
-  }
-
-  private var executionToolbar: some View {
-    AppActionBar {
-      HStack(spacing: UIStyle.compactSpacing) {
-        Picker("筛选", selection: $executionFilter) {
-          ForEach(ExecutionDashboardFilter.allCases, id: \.self) { filter in
-            Text(filter.title).tag(filter)
-          }
-        }
-        .pickerStyle(.segmented)
-
-        Button {
-          createTodo()
-          if let todo = selectedTodo {
-            setTodoStatus(todo, to: .todo)
-          }
-        } label: {
-          Label("新建任务", systemImage: "plus")
-        }
-        .appPrimaryActionButtonStyle()
-
-        Button(role: .destructive) {
-          deleteSelectedTodo()
-        } label: {
-          Label("删除任务", systemImage: "trash")
-        }
-        .appSecondaryActionButtonStyle()
-        .disabled(selectedTodo == nil)
-
-        Spacer(minLength: UIStyle.compactSpacing)
-
-        if !executionSuggestionRows.isEmpty {
-          Text("建议 \(executionSuggestionRows.count) 项")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-
-        Button {
-          withAnimation(.snappy(duration: 0.2)) {
-            isExecutionAdvancedExpanded.toggle()
-          }
-        } label: {
-          Label(isExecutionAdvancedExpanded ? "收起高级" : "高级", systemImage: "slider.horizontal.3")
-        }
-        .appSecondaryActionButtonStyle()
-
-        Text("共 \(executionFilteredTodos.count) 项")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
+      executionSecondaryPanels
     }
   }
 
@@ -144,7 +87,7 @@ extension PlanInputView {
     }
   }
 
-  private var executionSuggestionRows: [(recommendation: TodoRecommendation, todo: TodoItem)] {
+  var executionSuggestionRows: [(recommendation: TodoRecommendation, todo: TodoItem)] {
     let todoByID = Dictionary(uniqueKeysWithValues: document.todos.map { ($0.id, $0) })
     return pendingExecutionRecommendations
       .prefix(3)
@@ -166,35 +109,33 @@ extension PlanInputView {
     )
   }
 
-  private var executionRecommendationPanel: some View {
-    AppPanelCard {
-      VStack(alignment: .leading, spacing: 10) {
-        Text("建议优先处理")
-          .font(.headline)
+  var executionRecommendationPanel: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("建议优先处理")
+        .font(.headline)
 
-        ForEach(executionSuggestionRows, id: \.todo.id) { row in
-          HStack(alignment: .top, spacing: 8) {
-            VStack(alignment: .leading, spacing: 4) {
-              Text(row.todo.title.isEmpty ? "（无标题）" : row.todo.title)
-                .font(.subheadline.weight(.semibold))
-              Text("Score \(row.recommendation.score) · \(row.recommendation.reasons.joined(separator: ", "))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-            }
-
-            Spacer(minLength: UIStyle.compactSpacing)
-
-            Button("采用") {
-              acceptRecommendation(for: row.todo)
-            }
-            .appPrimaryActionButtonStyle()
-
-            Button("忽略") {
-              dismissRecommendation(for: row.todo)
-            }
-            .appSecondaryActionButtonStyle()
+      ForEach(executionSuggestionRows, id: \.todo.id) { row in
+        HStack(alignment: .top, spacing: 8) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text(row.todo.title.isEmpty ? "（无标题）" : row.todo.title)
+              .font(.subheadline.weight(.semibold))
+            Text("Score \(row.recommendation.score) · \(row.recommendation.reasons.joined(separator: ", "))")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .lineLimit(2)
           }
+
+          Spacer(minLength: UIStyle.compactSpacing)
+
+          Button("采用") {
+            acceptRecommendation(for: row.todo)
+          }
+          .appPrimaryActionButtonStyle()
+
+          Button("忽略") {
+            dismissRecommendation(for: row.todo)
+          }
+          .appSecondaryActionButtonStyle()
         }
       }
     }
@@ -242,51 +183,49 @@ extension PlanInputView {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 
-  private var pendingSyncReviews: [PendingSyncReview] {
+  var pendingSyncReviews: [PendingSyncReview] {
     pendingSyncReviewsByTodoID.values.sorted(by: { $0.createdAt > $1.createdAt })
   }
 
-  private var recentAutomationAudits: [AutomationAuditEntry] {
+  var recentAutomationAudits: [AutomationAuditEntry] {
     document.automationAudits.sorted(by: { $0.createdAt > $1.createdAt })
   }
 
-  private var executionAdvancedPanel: some View {
-    AppPanelCard {
-      VStack(alignment: .leading, spacing: 10) {
-        Text("高级执行策略")
-          .font(.headline)
+  var executionAdvancedPanel: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("高级执行策略")
+        .font(.headline)
 
-        HStack(spacing: UIStyle.compactSpacing) {
-          Menu {
-            Picker("冲突策略", selection: syncOwnershipPolicyBinding) {
-              ForEach(SyncOwnershipPolicy.allCases, id: \.self) { policy in
-                Text(syncOwnershipPolicyTitle(policy)).tag(policy)
-              }
+      HStack(spacing: UIStyle.compactSpacing) {
+        Menu {
+          Picker("冲突策略", selection: syncOwnershipPolicyBinding) {
+            ForEach(SyncOwnershipPolicy.allCases, id: \.self) { policy in
+              Text(syncOwnershipPolicyTitle(policy)).tag(policy)
             }
-          } label: {
-            Label(syncOwnershipPolicyTitle(syncOwnershipPolicy), systemImage: "arrow.triangle.2.circlepath")
           }
-          .appSecondaryActionButtonStyle()
+        } label: {
+          Label(syncOwnershipPolicyTitle(syncOwnershipPolicy), systemImage: "arrow.triangle.2.circlepath")
+        }
+        .appSecondaryActionButtonStyle()
 
-          Menu {
-            Picker("自动化权限", selection: automationPermissionPolicyBinding) {
-              ForEach(AutomationPermissionPolicy.allCases, id: \.self) { policy in
-                Text(automationPermissionPolicyTitle(policy)).tag(policy)
-              }
+        Menu {
+          Picker("自动化权限", selection: automationPermissionPolicyBinding) {
+            ForEach(AutomationPermissionPolicy.allCases, id: \.self) { policy in
+              Text(automationPermissionPolicyTitle(policy)).tag(policy)
             }
-          } label: {
-            Label(automationPermissionPolicyTitle(automationPermissionPolicy), systemImage: "hand.raised")
           }
-          .appSecondaryActionButtonStyle()
+        } label: {
+          Label(automationPermissionPolicyTitle(automationPermissionPolicy), systemImage: "hand.raised")
         }
+        .appSecondaryActionButtonStyle()
+      }
 
-        if !pendingSyncReviews.isEmpty {
-          executionPendingReviewPanel
-        }
+      if !pendingSyncReviews.isEmpty {
+        executionPendingReviewPanel
+      }
 
-        if !recentAutomationAudits.isEmpty {
-          executionAutomationAuditPanel
-        }
+      if !recentAutomationAudits.isEmpty {
+        executionAutomationAuditPanel
       }
     }
   }

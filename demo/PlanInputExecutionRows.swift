@@ -8,6 +8,52 @@ struct ExecutionEvidenceLookup {
 }
 
 extension PlanInputView {
+  private func executionRowStatusColor(_ status: TodoStatus) -> Color {
+    switch status {
+    case .todo:
+      .secondary
+    case .doing:
+      UIStyle.positiveStatusColor
+    case .blocked:
+      UIStyle.warningStatusColor
+    case .done:
+      .secondary
+    }
+  }
+
+  private func executionRowTimingLabel(for todo: TodoItem) -> String? {
+    if let dueAt = todo.dueAt {
+      return "截止 \(dueAt.formatted(date: .abbreviated, time: .shortened))"
+    }
+    if let scheduledAt = todo.scheduledAt {
+      return "计划 \(scheduledAt.formatted(date: .abbreviated, time: .shortened))"
+    }
+    return nil
+  }
+
+  private func executionRowSummary(for todo: TodoItem) -> String {
+    if let summary = todo.detail.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty {
+      return summary
+    }
+    return "尚未补充详细说明"
+  }
+
+  private func metaChip(
+    _ text: String,
+    foregroundColor: Color = .secondary,
+    backgroundColor: Color = Color.secondary.opacity(0.10)
+  ) -> some View {
+    Text(text)
+      .font(.caption2)
+      .foregroundStyle(foregroundColor)
+      .padding(.horizontal, 6)
+      .padding(.vertical, 3)
+      .background(
+        Capsule(style: .continuous)
+          .fill(backgroundColor)
+      )
+  }
+
   func executionRowActions(for todo: TodoItem) -> some View {
     HStack(spacing: 8) {
       Button("待办") {
@@ -211,62 +257,89 @@ extension PlanInputView {
     scoreByTodoID: [UUID: Int],
     evidenceLookup: ExecutionEvidenceLookup
   ) -> some View {
-    VStack(alignment: .leading, spacing: 8) {
+    let score = scoreByTodoID[todo.id]
+    let linkedClaimCount = executionLinkedClaims(for: todo, evidenceLookup: evidenceLookup).count
+    let linkedCitationCount = executionLinkedCitations(for: todo, evidenceLookup: evidenceLookup).count
+    let missingEvidenceCount = executionMissingEvidenceCount(for: todo, evidenceLookup: evidenceLookup)
+
+    return VStack(alignment: .leading, spacing: 8) {
       executionRowHeader(for: todo)
-      executionRowDetail(for: todo)
-      executionRowMeta(for: todo, scoreByTodoID: scoreByTodoID)
-      executionRowEvidence(for: todo, evidenceLookup: evidenceLookup)
+      executionRowMeta(
+        todo,
+        score: score,
+        linkedClaimCount: linkedClaimCount,
+        linkedCitationCount: linkedCitationCount,
+        missingEvidenceCount: missingEvidenceCount
+      )
       executionRowActions(for: todo)
     }
   }
 
   private func executionRowHeader(for todo: TodoItem) -> some View {
-    HStack(alignment: .firstTextBaseline, spacing: 8) {
-      Text(todo.title.isEmpty ? "（无标题）" : todo.title)
-        .font(.body.weight(.medium))
-        .lineLimit(2)
+    VStack(alignment: .leading, spacing: 4) {
+      HStack(alignment: .top, spacing: 8) {
+        Text(todo.title.isEmpty ? "（无标题）" : todo.title)
+          .font(.body.weight(.medium))
+          .lineLimit(2)
 
-      Spacer(minLength: UIStyle.compactSpacing)
+        Spacer(minLength: UIStyle.compactSpacing)
 
-      Text(todo.status.rawValue)
+        Text(todo.status.rawValue)
+          .font(.caption2.weight(.semibold))
+          .padding(.horizontal, 6)
+          .padding(.vertical, 3)
+          .background(
+            Capsule(style: .continuous)
+              .fill(executionRowStatusColor(todo.status).opacity(0.16))
+          )
+          .foregroundStyle(executionRowStatusColor(todo.status))
+      }
+
+      Text(executionRowSummary(for: todo))
         .font(.caption)
         .foregroundStyle(.secondary)
+        .lineLimit(1)
     }
   }
 
-  private func executionRowDetail(for todo: TodoItem) -> some View {
-    Group {
-      if !todo.detail.isEmpty {
-        Text(todo.detail)
-          .font(.caption)
-          .foregroundStyle(.secondary)
-          .lineLimit(2)
-      }
-    }
-  }
-
-  private func executionRowMeta(for todo: TodoItem, scoreByTodoID: [UUID: Int]) -> some View {
+  private func executionRowMeta(
+    _ todo: TodoItem,
+    score: Int?,
+    linkedClaimCount: Int,
+    linkedCitationCount: Int,
+    missingEvidenceCount: Int
+  ) -> some View {
     HStack(spacing: 8) {
-      Text("P:\(todo.priority.rawValue)")
-        .font(.caption2)
-        .foregroundStyle(.secondary)
+      metaChip("优先级 \(todo.priority.rawValue)")
 
-      if let score = scoreByTodoID[todo.id] {
-        Text("Score \(score)")
-          .font(.caption2)
-          .foregroundStyle(.secondary)
+      if let score {
+        metaChip("Score \(score)")
       }
 
-      if let dueAt = todo.dueAt {
-        Text("截止 \(dueAt.formatted(date: .abbreviated, time: .shortened))")
-          .font(.caption2)
-          .foregroundStyle(.secondary)
-      } else if let scheduledAt = todo.scheduledAt {
-        Text("计划 \(scheduledAt.formatted(date: .abbreviated, time: .shortened))")
-          .font(.caption2)
-          .foregroundStyle(.secondary)
+      if let timing = executionRowTimingLabel(for: todo) {
+        metaChip(timing)
       }
+
+      if linkedClaimCount + linkedCitationCount > 0 {
+        metaChip("证据 \(linkedClaimCount + linkedCitationCount)")
+      }
+
+      if missingEvidenceCount > 0 {
+        metaChip(
+          "失效 \(missingEvidenceCount)",
+          foregroundColor: UIStyle.warningStatusColor,
+          backgroundColor: UIStyle.warningStatusColor.opacity(0.16)
+        )
+      }
+
+      Spacer(minLength: UIStyle.compactSpacing)
     }
   }
 
+}
+
+private extension String {
+  var nilIfEmpty: String? {
+    isEmpty ? nil : self
+  }
 }

@@ -2,16 +2,41 @@ import Core
 import SwiftUI
 
 extension PlanInputView {
+  private static let qualityPreviewLimit = 2
+
   var executionQualityIssuePanel: some View {
     let issues = executionQualityIssues
+    let previewIssues = Array(issues.prefix(Self.qualityPreviewLimit))
+
     return Group {
       if !issues.isEmpty {
         AppPanelCard {
           VStack(alignment: .leading, spacing: 10) {
-            Text("执行质量提示")
-              .font(.headline)
+            HStack(alignment: .firstTextBaseline, spacing: UIStyle.compactSpacing) {
+              Text("执行质量提示")
+                .font(.headline)
 
-            ForEach(Array(issues.enumerated()), id: \.offset) { _, issue in
+              Spacer(minLength: UIStyle.compactSpacing)
+
+              if issues.count > Self.qualityPreviewLimit {
+                Button {
+                  withAnimation(.snappy(duration: 0.2)) {
+                    isExecutionQualityExpanded.toggle()
+                  }
+                } label: {
+                  Label(
+                    isExecutionQualityExpanded ? "收起全部" : "查看全部（\(issues.count)）",
+                    systemImage: isExecutionQualityExpanded ? "chevron.up" : "chevron.down"
+                  )
+                }
+                .appSecondaryActionButtonStyle()
+              }
+            }
+
+            ForEach(
+              Array(displayedQualityIssues(issues: issues, previewIssues: previewIssues).enumerated()),
+              id: \.offset
+            ) { _, issue in
               HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
                   .foregroundStyle(UIStyle.warningStatusColor)
@@ -35,10 +60,26 @@ extension PlanInputView {
               .padding(8)
               .appChipGlass()
             }
+
+            if !isExecutionQualityExpanded && issues.count > Self.qualityPreviewLimit {
+              Text("仅展示高影响问题，展开可查看完整列表。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
           }
         }
       }
     }
+  }
+
+  private func displayedQualityIssues(
+    issues: [WorkflowQualityIssue],
+    previewIssues: [WorkflowQualityIssue]
+  ) -> [WorkflowQualityIssue] {
+    if isExecutionQualityExpanded {
+      return issues
+    }
+    return previewIssues
   }
 
   private var executionQualityIssues: [WorkflowQualityIssue] {

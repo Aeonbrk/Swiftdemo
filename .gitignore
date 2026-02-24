@@ -4,6 +4,7 @@
 DerivedData/
 *.xcresult
 xcuserdata/
+.DS_Store
 
 # SwiftPM
 .build/
@@ -11,3 +12,14 @@ xcuserdata/
 
 # bv (beads viewer) local config and caches
 .bv/
+
+# Beads
+.beads/
+
+# Logs and temp
+*.log
+tmp/
+
+# Editor/IDE
+.idea/
+.vscode/
