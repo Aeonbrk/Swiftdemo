@@ -1,97 +1,103 @@
 # Learning Plan Demo
 
-一个基于 SwiftUI + SwiftData 的学习计划整理应用：把长文本学习计划转成结构化计划、卡片（Flashcards）和任务（Todos），并在流程化工作区中完成生成、整理与执行。
+A SwiftUI + SwiftData learning-planning app that converts long-form study text into structured assets (plan, flashcards, and todos) inside a guided workflow.
 
-## 这个项目解决什么问题
+## What This Project Solves
 
-- 把“原始学习文本”稳定转换为可维护的学习资产（计划、卡片、任务）。
-- 用四步流程降低上手门槛：输入素材 → 生成计划 → 整理产物 → 今日执行。
-- 通过可替换 Provider（OpenAI-compatible）降低模型接入成本。
+- Converts raw study text into maintainable learning artifacts.
+- Provides a 4-stage workflow to reduce onboarding friction: `inputMaterial` -> `generatePlan` -> `organizeArtifacts` -> `todayExecution`.
+- Supports pluggable OpenAI-compatible providers for lower integration cost.
 
-## 能力边界
+## Capability Boundaries
 
-### 已实现
-- 多文档管理：创建、选择、删除 `PlanDocument`。
-- 两步生成流程：
-  - Step 1：生成 `planJSON`、`planMarkdown`、`claims`、`citations`。
-  - Step 2：生成 `flashcards`、`todos`，支持 `replace` / `merge`。
-- 流程引导与质量提示：
-  - 顶部流程进度与下一步建议。
-  - 执行可落地性检查（提示型，不阻断）。
-- 今日执行一体化：
-  - 任务筛选、状态推进、执行建议、任务详情、证据关联。
-  - 高级抽屉：同步策略、待审核队列、自动化审计。
-- Provider 管理（macOS）：预设导入、自定义、新增/删除、激活、连通性诊断。
-- API Key 安全存储：仅使用 Keychain。
-- 导出：
-  - Flashcards → TSV / CSV
-  - Todos → CSV（兼容 / 扩展）
-- 核心模块单元测试（`Core` package）。
+### Implemented
 
-### 未实现（当前范围外）
-- 引用真实性自动校验（当前只保留结构与状态字段）。
-- `.apkg` 生成或 AnkiConnect 直连。
-- 完整跨平台 Settings 体验（当前主要在 macOS）。
+- Multi-document management: create/select/delete `PlanDocument`.
+- Two-stage generation:
+  - Step 1: produce `planJSON`, `planMarkdown`, `claims`, `citations`.
+  - Step 2: produce `flashcards`, `todos` with `replace` / `merge` modes.
+- Workflow guidance and quality hints:
+  - Top workflow progress and next-step recommendation.
+  - Execution quality checks (non-blocking hints).
+- Unified execution workspace:
+  - Todo filtering, status updates, recommendations, details, evidence links.
+  - Advanced drawer for sync policy, pending review queue, and automation audit.
+- Provider management (macOS): presets, custom providers, add/delete/activate, diagnostics.
+- API key handling via Keychain only.
+- Export:
+  - Flashcards -> TSV / CSV
+  - Todos -> CSV (legacy / extended)
+- Core unit tests in the `Core` Swift package.
 
-## 快速启动
+### Not Implemented (Out of Scope)
 
-### 环境要求
-- Xcode（当前工程在 Xcode 17 系列工具链下验证）
-- SwiftLint（代码规则校验）
+- Automatic citation authenticity verification.
+- `.apkg` generation or direct AnkiConnect integration.
+- Fully symmetric cross-platform settings UX (macOS-first currently).
 
-### 构建与测试
+## Quick Start
+
+### Requirements
+
+- Xcode (project validated on Xcode 17 toolchain line)
+- SwiftLint
+
+### Build and Test
+
 ```bash
 swift test --package-path Core
 xcodebuild -project demo.xcodeproj -scheme demo -destination 'platform=macOS' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
 xcodebuild -project demo.xcodeproj -scheme demo -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
 ```
 
-### 代码质量检查
+### Lint
+
 ```bash
 swiftlint lint demo Core/Sources Core/Tests
 ```
 
-### 可选：脚本启动 macOS App
+### Optional: Launch macOS App Script
+
 ```bash
 ./scripts/launch-mac.sh
 ```
 
-## 目录说明
+## Repository Layout
 
-- `demo/`：应用层 UI 与交互逻辑
-- `Core/`：可复用核心能力（模型、Pipeline、LLM、Execution、导出、持久化）
-- `docs/PROJECT_OVERVIEW.md`：项目权威说明
-- `docs/CODEBASE_MAP.md`：代码导航地图（入口、模块、关键数据流）
-- `docs/perf/`：性能测量记录
-- `.beads/`：本地 issue/任务追踪数据（git-backed）
+- `demo/`: app-layer UI and interaction logic.
+- `Core/`: reusable core capabilities (models, pipelines, LLM client, execution, export, persistence).
+- `llmdoc/`: agent-oriented documentation and structural map.
+- `.beads/`: local git-backed issue/task tracking data.
 
-## 关键流程（最短路径）
+## Primary Workflow (Shortest Path)
 
-1. 在「输入素材」填写学习计划文本。
-2. 在「生成计划」执行 Step 1。
-3. 在「生成计划」执行 Step 2（可选 replace/merge）。
-4. 在「整理产物」快速检查任务/卡片/引用/记录。
-5. 自动进入「今日执行」开始推进任务。
-6. 按需导出 TSV/CSV（macOS 走保存面板）。
+1. Confirm provider from the top toolbar.
+2. Fill study text in `inputMaterial`.
+3. Run Step 1 in `generatePlan`.
+4. Run Step 2 in `generatePlan` (`replace` or `merge`).
+5. Review artifacts in `organizeArtifacts`.
+6. Continue work in `todayExecution` (auto-routed after successful Step 2).
+7. Export TSV/CSV as needed.
 
-## 常见问题
+## FAQ
 
-### 1) 生成时报错 `No active provider`
-先在 Provider 设置里创建并激活一个 Provider。
+### `No active provider` during generation
 
-### 2) 生成时报错 API key 缺失
-在 Provider 编辑页保存 API key（写入 Keychain）。
+Open provider settings from the toolbar and activate a provider.
 
-### 3) Provider 可用但请求异常
-打开 Provider Diagnostics 查看 HTTP 状态、延迟与建议文案。
+### Missing API key error
 
-### 4) 导出不可用
-导出功能依赖 macOS 保存面板；非 macOS 平台会提示不支持。
+Save API key in provider editor (stored in Keychain).
 
-## 维护说明
+### Provider reachable but request fails
 
-- 设计与实现说明以 `docs/PROJECT_OVERVIEW.md` 为准。
-- 大范围代码变更后，请同步更新：
-  - `README.md`
-  - `docs/PROJECT_OVERVIEW.md`
-  - `docs/CODEBASE_MAP.md`
+Open diagnostics and inspect HTTP status, latency, and error summary.
+
+### Export is unavailable
+
+Export relies on macOS save panel; non-macOS platforms show unsupported feedback.
+
+## Maintenance Notes
+
+- `llmdoc/reference/CODEBASE_MAP.md` is the canonical navigation map.
+- After broad changes, update `README.md` and relevant `llmdoc/*` docs together.
