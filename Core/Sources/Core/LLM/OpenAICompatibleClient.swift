@@ -110,5 +110,5 @@ private struct ChatCompletionsResponse: Decodable {
 }
 
 private struct ChatCompletionsMessage: Decodable {
-  let content: String
+  let content: String?
 }

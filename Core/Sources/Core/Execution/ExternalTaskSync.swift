@@ -86,6 +86,11 @@ public struct NoopExternalTaskSyncAdapter: ExternalTaskSyncAdapter {
 }
 
 public enum ExternalTaskMapping {
+  private static func resolvedExternalID(for todo: TodoItem) -> String {
+    let trimmed = todo.externalSyncID?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    return trimmed.isEmpty ? todo.id.uuidString : trimmed
+  }
+
   public static func toExternalRecord(
     todo: TodoItem,
     provider: ExternalTaskProvider
@@ -93,7 +98,7 @@ public enum ExternalTaskMapping {
     makeExternalTaskRecord(
       from: todo,
       provider: provider,
-      externalID: todo.externalSyncID ?? todo.id.uuidString,
+      externalID: resolvedExternalID(for: todo),
       sourceUpdatedAt: todo.externalSyncUpdatedAt ?? todo.updatedAt
     )
   }

@@ -60,7 +60,7 @@
       .onAppear {
         refreshSelectionIfNeeded()
       }
-      .onChange(of: providers.count) { _, _ in
+      .onChange(of: providers.count) {
         refreshSelectionIfNeeded()
       }
       .onExitCommand {

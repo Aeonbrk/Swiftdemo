@@ -35,7 +35,7 @@ struct ContentView: View {
     let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !keyword.isEmpty else { return documents }
     return documents.filter { document in
-      document.title.localizedCaseInsensitiveContains(keyword)
+      document.title.localizedStandardContains(keyword)
     }
   }
 
@@ -120,6 +120,7 @@ struct ContentView: View {
     } detail: {
       if let document = selectedDocument {
         PlanInputView(document: document)
+          .id(document.id)
       } else {
         ContentUnavailableView("请选择一个计划", systemImage: "doc.text")
       }
@@ -161,7 +162,7 @@ struct ContentView: View {
       }
       setupPerformanceAutomationIfNeeded()
     }
-    .onChange(of: documents.count) { _, _ in
+    .onChange(of: documents.count) {
       setupPerformanceAutomationIfNeeded()
     }
     .onDisappear {

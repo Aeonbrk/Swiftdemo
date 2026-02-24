@@ -78,6 +78,14 @@ xcodebuild -project demo.xcodeproj -scheme demo -destination 'generic/platform=i
 swiftlint lint demo Core/Sources Core/Tests
 ```
 
+Deterministic local wrapper (recommended):
+
+```bash
+./scripts/verify-local.sh
+```
+
+This wrapper sets a repo-local temp dir and writes logs to `.tmp/verify-logs/`.
+
 ## Known Boundaries
 
 - Provider settings UX is macOS-first.

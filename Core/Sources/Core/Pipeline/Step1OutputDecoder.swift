@@ -21,7 +21,9 @@ public enum Step1OutputDecoder {
 
   private static func extractFirstJSONObjectString(from text: String) throws -> String {
     if let fenced = extractFencedCodeBlock(from: text) {
-      return try validatedJSONObjectString(from: fenced)
+      if let validCandidate = tryValidatedJSONObjectString(from: fenced) {
+        return validCandidate
+      }
     }
 
     if let first = text.firstIndex(of: "{"), let last = text.lastIndex(of: "}") {

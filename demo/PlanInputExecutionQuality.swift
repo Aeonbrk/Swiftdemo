@@ -34,9 +34,9 @@ extension PlanInputView {
             }
 
             ForEach(
-              Array(displayedQualityIssues(issues: issues, previewIssues: previewIssues).enumerated()),
-              id: \.offset
-            ) { _, issue in
+              displayedQualityIssues(issues: issues, previewIssues: previewIssues),
+              id: \.kind
+            ) { issue in
               HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill")
                   .foregroundStyle(UIStyle.warningStatusColor)

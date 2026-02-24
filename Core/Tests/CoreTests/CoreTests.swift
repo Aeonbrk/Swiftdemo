@@ -127,6 +127,7 @@ import Testing
 }
 
 @Test func openAICompatibleClientSendsBearerToken() async throws {
+  defer { MockURLProtocol.resetHandlers() }
   let assistantContent =
     "{\"planJSON\":\"{}\",\"planMarkdown\":\"# Plan\",\"claims\":[],\"citations\":[]}"
   let chatCompletionResponseData = try makeChatCompletionResponseData(
@@ -169,6 +170,7 @@ import Testing
 }
 
 @Test func step1PipelineCallsClientAndDecodes() async throws {
+  defer { MockURLProtocol.resetHandlers() }
   let assistantContent = """
     ```json
     {\"planJSON\":\"{}\",\"planMarkdown\":\"# Plan\",\"claims\":[],\"citations\":[]}
@@ -208,6 +210,7 @@ import Testing
 }
 
 @Test func step2PipelineCallsClientAndDecodes() async throws {
+  defer { MockURLProtocol.resetHandlers() }
   let assistantContent = """
     ```json
     {"flashcards":[{"front":"Q","back":"A","tagsRaw":"t"}],
@@ -264,11 +267,11 @@ import Testing
   #expect(presets.contains(where: { $0.id == .deepSeek }))
 
   for preset in presets {
-    #expect(preset.name.isEmpty == false)
+    #expect(!preset.name.isEmpty)
     #expect(preset.baseURL.hasPrefix("https://"))
     #expect(preset.baseURL.contains("/v1"))
-    #expect(preset.model.isEmpty == false)
-    #expect(preset.extraHeadersJSON.isEmpty == false)
+    #expect(!preset.model.isEmpty)
+    #expect(!preset.extraHeadersJSON.isEmpty)
   }
 }
 
@@ -327,6 +330,12 @@ private final class MockURLProtocol: URLProtocol {
   ) {
     lock.lock()
     handlers[path] = handler
+    lock.unlock()
+  }
+
+  static func resetHandlers() {
+    lock.lock()
+    handlers.removeAll()
     lock.unlock()
   }
 

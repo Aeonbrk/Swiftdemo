@@ -10,30 +10,14 @@ public enum TodosExporter {
     guard todos.isEmpty == false else {
       return legacyHeader
     }
-
-    var lines: [String] = [legacyHeader]
-    lines.reserveCapacity(todos.count + 1)
-
-    for todo in todos {
-      lines.append(legacyCSVRow(for: todo))
-    }
-
-    return lines.joined()
+    return joinedRows(todos, header: legacyHeader, rowBuilder: legacyCSVRow(for:))
   }
 
   public static func csvExtended(todos: [TodoItem]) -> String {
     guard todos.isEmpty == false else {
       return extendedHeader
     }
-
-    var lines: [String] = [extendedHeader]
-    lines.reserveCapacity(todos.count + 1)
-
-    for todo in todos {
-      lines.append(extendedCSVRow(for: todo))
-    }
-
-    return lines.joined()
+    return joinedRows(todos, header: extendedHeader, rowBuilder: extendedCSVRow(for:))
   }
 
   private static func legacyCSVRow(for todo: TodoItem) -> String {
@@ -93,5 +77,19 @@ public enum TodosExporter {
       .replacingOccurrences(of: "\r\n", with: "\n")
       .replacingOccurrences(of: "\r", with: "\n")
       .replacingOccurrences(of: "\n", with: "<br>")
+  }
+
+  private static func joinedRows<T>(
+    _ items: [T],
+    header: String,
+    rowBuilder: (T) -> String
+  ) -> String {
+    var lines: [String] = [header]
+    lines.reserveCapacity(items.count + 1)
+
+    for item in items {
+      lines.append(rowBuilder(item))
+    }
+    return lines.joined()
   }
 }

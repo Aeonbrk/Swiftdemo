@@ -66,6 +66,13 @@ flowchart LR
   - `llmdoc/reference/CODEBASE_MAP.md`
   - `llmdoc/reference/perf-2026-02-09-ui-switching-metrics.md`
 
+### `scripts/`
+
+- Responsibility: local developer automation for build/run/verification workflows.
+- Entrypoints:
+  - `scripts/launch-mac.sh`
+  - `scripts/verify-local.sh`
+
 ## Key Data Flows
 
 ### Generation
@@ -105,3 +112,6 @@ flowchart LR
 - To modify execution recommendation/quality logic:
   - Start: `Core/Sources/Core/Execution/ExecutionSuggestionEngine.swift`
   - Then: `Core/Sources/Core/Execution/WorkflowGuidanceEngine.swift`, `demo/PlanInputExecutionTab.swift`, `demo/PlanInputExecutionRows.swift`, `demo/PlanInputExecutionSurface.swift`, `demo/PlanInputExecutionQuality.swift`
+- To modify local verification workflow:
+  - Start: `scripts/verify-local.sh`
+  - Then: `README.md`, `llmdoc/overview/project-overview.md`, `llmdoc/reference/git-conventions.md`

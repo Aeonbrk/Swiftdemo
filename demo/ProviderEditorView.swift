@@ -59,20 +59,20 @@
         .padding(.vertical, UIStyle.panelPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
       }
-      .onChange(of: provider.id) { _, _ in
+      .onChange(of: provider.id) {
         isExtraHeadersExpanded = false
         newAPIKey = ""
       }
-      .onChange(of: provider.name) { _, _ in
+      .onChange(of: provider.name) {
         provider.updatedAt = .now
       }
-      .onChange(of: provider.baseURL) { _, _ in
+      .onChange(of: provider.baseURL) {
         provider.updatedAt = .now
       }
-      .onChange(of: provider.model) { _, _ in
+      .onChange(of: provider.model) {
         provider.updatedAt = .now
       }
-      .onChange(of: provider.extraHeadersJSON) { _, _ in
+      .onChange(of: provider.extraHeadersJSON) {
         provider.updatedAt = .now
       }
     }

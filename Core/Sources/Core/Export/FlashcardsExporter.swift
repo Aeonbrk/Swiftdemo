@@ -5,30 +5,14 @@ public enum FlashcardsExporter {
     guard cards.isEmpty == false else {
       return ""
     }
-
-    var lines: [String] = []
-    lines.reserveCapacity(cards.count)
-
-    for card in cards {
-      lines.append(tsvRow(for: card))
-    }
-
-    return lines.joined()
+    return joinedRows(cards, rowBuilder: tsvRow(for:))
   }
 
   public static func csv(cards: [Flashcard]) -> String {
     guard cards.isEmpty == false else {
       return ""
     }
-
-    var lines: [String] = []
-    lines.reserveCapacity(cards.count)
-
-    for card in cards {
-      lines.append(csvRow(for: card))
-    }
-
-    return lines.joined()
+    return joinedRows(cards, rowBuilder: csvRow(for:))
   }
 
   private static func tsvRow(for card: Flashcard) -> String {
@@ -73,5 +57,18 @@ public enum FlashcardsExporter {
       .replacingOccurrences(of: "\r\n", with: "\n")
       .replacingOccurrences(of: "\r", with: "\n")
       .replacingOccurrences(of: "\n", with: "<br>")
+  }
+
+  private static func joinedRows<T>(
+    _ items: [T],
+    rowBuilder: (T) -> String
+  ) -> String {
+    var lines: [String] = []
+    lines.reserveCapacity(items.count)
+
+    for item in items {
+      lines.append(rowBuilder(item))
+    }
+    return lines.joined()
   }
 }

@@ -1,7 +1,7 @@
 import SwiftData
 
 public enum CoreModelContainer {
-  enum CoreModelContainerError: Error {
+  private enum CoreModelContainerError: Error {
     case noRegisteredModelTypes
   }
 

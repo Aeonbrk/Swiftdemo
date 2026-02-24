@@ -4,6 +4,7 @@ import Testing
 @testable import Core
 
 @Test func providerConnectivityProbeClassifiesHealthyResponse() async throws {
+  defer { ProbeMockURLProtocol.resetHandlers() }
   let responseData = Data("{}".utf8)
   ProbeMockURLProtocol.setHandler(path: "/v1/provider-health/models") { request in
     #expect(request.httpMethod == "GET")
@@ -29,6 +30,7 @@ import Testing
 }
 
 @Test func providerConnectivityProbeClassifiesUnauthorized() async throws {
+  defer { ProbeMockURLProtocol.resetHandlers() }
   ProbeMockURLProtocol.setHandler(path: "/v1/provider-auth/models") { request in
     let data = Data("{\"error\":\"invalid api key\"}".utf8)
     return (
@@ -49,6 +51,7 @@ import Testing
 }
 
 @Test func providerConnectivityProbeClassifiesTimeout() async throws {
+  defer { ProbeMockURLProtocol.resetHandlers() }
   ProbeMockURLProtocol.setHandler(path: "/v1/provider-timeout/models") { _ in
     throw URLError(.timedOut)
   }
@@ -65,6 +68,7 @@ import Testing
 }
 
 @Test func providerConnectivityProbeClassifiesNetworkUnavailable() async throws {
+  defer { ProbeMockURLProtocol.resetHandlers() }
   ProbeMockURLProtocol.setHandler(path: "/v1/provider-network/models") { _ in
     throw URLError(.cannotFindHost)
   }
@@ -97,6 +101,12 @@ private final class ProbeMockURLProtocol: URLProtocol {
   ) {
     lock.lock()
     handlers[path] = handler
+    lock.unlock()
+  }
+
+  static func resetHandlers() {
+    lock.lock()
+    handlers.removeAll()
     lock.unlock()
   }
 

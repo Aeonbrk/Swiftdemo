@@ -77,13 +77,13 @@ extension PlanInputView {
     .padding(UIStyle.workspacePadding)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .navigationTitle(document.title)
-    .onChange(of: selectedCardID) { _, _ in
+    .onChange(of: selectedCardID) {
       isShowingCardBack = false
     }
-    .onChange(of: document.title) { _, _ in
+    .onChange(of: document.title) {
       scheduleDocumentUpdatedAtTouch()
     }
-    .onChange(of: document.rawInput) { _, _ in
+    .onChange(of: document.rawInput) {
       scheduleDocumentUpdatedAtTouch()
     }
     .onDisappear {
@@ -127,21 +127,21 @@ extension PlanInputView {
 
   private var mainTabs: some View {
     TabView(selection: $selectedMainTab) {
-      inputMaterialView
-        .tabItem { Label("输入素材", systemImage: "square.and.pencil") }
-        .tag(PlanInputMainTab.inputMaterial)
+      Tab("输入素材", systemImage: "square.and.pencil", value: .inputMaterial) {
+        inputMaterialView
+      }
 
-      generatePlanView
-        .tabItem { Label("生成计划", systemImage: "doc.text.magnifyingglass") }
-        .tag(PlanInputMainTab.generatePlan)
+      Tab("生成计划", systemImage: "doc.text.magnifyingglass", value: .generatePlan) {
+        generatePlanView
+      }
 
-      organizeArtifactsView
-        .tabItem { Label("整理产物", systemImage: "rectangle.stack") }
-        .tag(PlanInputMainTab.organizeArtifacts)
+      Tab("整理产物", systemImage: "rectangle.stack", value: .organizeArtifacts) {
+        organizeArtifactsView
+      }
 
-      todayExecutionView
-        .tabItem { Label("今日执行", systemImage: "bolt.horizontal.circle") }
-        .tag(PlanInputMainTab.todayExecution)
+      Tab("今日执行", systemImage: "bolt.horizontal.circle", value: .todayExecution) {
+        todayExecutionView
+      }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
@@ -206,19 +206,19 @@ extension PlanInputView {
         setupRouteAutomationIfNeeded()
         activateWorkflowOnboardingIfNeeded()
       }
-      .onChange(of: document.flashcards.count) { _, _ in
+      .onChange(of: document.flashcards.count) {
         syncSelectionWithCurrentData()
       }
-      .onChange(of: document.todos.count) { _, _ in
+      .onChange(of: document.todos.count) {
         syncSelectionWithCurrentData()
       }
-      .onChange(of: selectedCardID) { _, _ in
+      .onChange(of: selectedCardID) {
         isShowingCardBack = false
       }
-      .onChange(of: document.title) { _, _ in
+      .onChange(of: document.title) {
         scheduleDocumentUpdatedAtTouch()
       }
-      .onChange(of: document.rawInput) { _, _ in
+      .onChange(of: document.rawInput) {
         scheduleDocumentUpdatedAtTouch()
       }
       .onDisappear {

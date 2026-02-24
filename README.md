@@ -56,6 +56,16 @@ xcodebuild -project demo.xcodeproj -scheme demo -destination 'generic/platform=i
 swiftlint lint demo Core/Sources Core/Tests
 ```
 
+### Deterministic Local Verification
+
+Use the repo wrapper to run all required checks with a repo-local temp directory and per-step logs:
+
+```bash
+./scripts/verify-local.sh
+```
+
+Logs are written to `.tmp/verify-logs/`.
+
 ### Optional: Launch macOS App Script
 
 ```bash

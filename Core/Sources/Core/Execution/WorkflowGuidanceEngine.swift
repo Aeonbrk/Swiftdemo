@@ -136,7 +136,8 @@ public enum WorkflowGuidanceEngine {
     if let issue = blockedMissingDetailIssue(todos: todos) {
       issues.append(issue)
     }
-    if let issue = unscheduledPlanningIssue(todos: todos, now: now) {
+    _ = now
+    if let issue = unscheduledPlanningIssue(todos: todos) {
       issues.append(issue)
     }
 
@@ -175,11 +176,7 @@ public enum WorkflowGuidanceEngine {
     )
   }
 
-  private static func unscheduledPlanningIssue(
-    todos: [TodoItem],
-    now: Date
-  ) -> WorkflowQualityIssue? {
-    _ = now
+  private static func unscheduledPlanningIssue(todos: [TodoItem]) -> WorkflowQualityIssue? {
     let activeTodos = todos.filter { $0.status != .done }
     let unscheduledActiveTodos = activeTodos.filter {
       $0.scheduledAt == nil && $0.dueAt == nil

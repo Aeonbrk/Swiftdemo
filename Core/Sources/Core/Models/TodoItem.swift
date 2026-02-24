@@ -17,7 +17,6 @@ public enum TodoPriority: String, CaseIterable, Sendable {
 private enum TodoItemDefaults {
   static let status: TodoStatus = .todo
   static let priority: TodoPriority = .medium
-  static let frequencyRaw = "once"
 }
 
 @Model
